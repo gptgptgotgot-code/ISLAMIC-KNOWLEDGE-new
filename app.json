@@ -1,0 +1,20 @@
+ 
+{
+  "expo": {
+    "name": "اسلامي علمي کتابتون",
+   "slug": "islamic-knowledge",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "android": {
+      "package": "com.bookstore13579.mirathislam",
+      "versionCode": 1
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e28088ba-5d18-4f96-a7e2-24b12739df84"
+      }
+    },
+    "description": "اسلامي علمي کتابتون"
+  }
+}
