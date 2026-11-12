@@ -244,6 +244,9 @@ const SIHAH_SITTA_KITAB_TITLES = {
   ]
 };
 
+// د قرآن کریم ۱۱۴ سورتونه؛ د سورت له انتخاب وروسته د هماغه سورت درسونه او آیتونه جلا ښکاري.
+const QURAN_SURAHS = `الفاتحة|البقرة|آل عمران|النساء|المائدة|الأنعام|الأعراف|الأنفال|التوبة|يونس|هود|يوسف|الرعد|إبراهيم|الحجر|النحل|الإسراء|الكهف|مريم|طه|الأنبياء|الحج|المؤمنون|النور|الفرقان|الشعراء|النمل|القصص|العنكبوت|الروم|لقمان|السجدة|الأحزاب|سبأ|فاطر|يس|الصافات|ص|الزمر|غافر|فصلت|الشورى|الزخرف|الدخان|الجاثية|الأحقاف|محمد|الفتح|الحجرات|ق|الذاريات|الطور|النجم|القمر|الرحمن|الواقعة|الحديد|المجادلة|الحشر|الممتحنة|الصف|الجمعة|المنافقون|التغابن|الطلاق|التحريم|الملك|القلم|الحاقة|المعارج|نوح|الجن|المزمل|المدثر|القيامة|الإنسان|المرسلات|النبأ|النازعات|عبس|التكوير|الانفطار|المطففين|الانشقاق|البروج|الطارق|الأعلى|الغاشية|الفجر|البلد|الشمس|الليل|الضحى|الشرح|التين|العلق|القدر|البينة|الزلزلة|العاديات|القارعة|التكاثر|العصر|الهمزة|الفيل|قريش|الماعون|الكوثر|الكافرون|النصر|المسد|الإخلاص|الفلق|الناس`.split('|').map((name, index) => ({ number: index + 1, name }));
+
 // د کورپاڼې د ډیزاین د شخصي تنظیماتو اصلي ارزښتونه
 const DEFAULT_HOME_DESIGN = {
   pageBackground: '#E8EEE8',
@@ -436,6 +439,7 @@ export default function App() {
   const [quranTargetAyah, setQuranTargetAyah] = useState('');
   const [quranTargetSurah, setQuranTargetSurah] = useState('');
   const [quranSearch, setQuranSearch] = useState('');
+  const [quranSelectedSurah, setQuranSelectedSurah] = useState(null);
   const [quranMode, setQuranMode] = useState(false);
 
   const [searchText, setSearchText] = useState('');
@@ -690,6 +694,10 @@ export default function App() {
   }
 
   function goBack() {
+    if (screen === 'itemDetails' && selectedItem?.resourceType === 'quran') {
+      setScreen(quranSelectedSurah ? 'quranSurah' : 'quran');
+      return;
+    }
     if (screen === 'audioPlayer' || screen === 'pdfReader') {
       if (mediaReturnScreen === 'oldBook' && selectedBook) setSelectedItem(selectedBook);
       setScreen(mediaReturnScreen || 'oldBook');
@@ -724,7 +732,8 @@ export default function App() {
       search: 'home',
       favorites: 'home',
       quran: 'home',
-      quranEditor: 'quran',
+      quranSurah: 'quran',
+      quranEditor: quranSelectedSurah ? 'quranSurah' : 'quran',
       learningPath: 'home',
       audioPlayer: 'itemDetails',
       pdfReader: 'itemDetails',
@@ -1102,6 +1111,8 @@ export default function App() {
       folder: quranMode ? 'قرآن کریم' : selectedFolder,
       level: formLevel,
       surah: quranMode ? formSurah.trim() : '',
+      surahNumber: quranMode ? (Number(formSurah) || quranSelectedSurah?.number || null) : null,
+      surahName: quranMode ? (quranSelectedSurah?.name || '') : '',
       ayah: quranMode ? formAyah.trim() : '',
       pageMap: parsedPageMap,
       audioMap: parsedAudioMap,
@@ -1115,7 +1126,7 @@ export default function App() {
     ]);
 
     clearForm();
-    setScreen(savedAsQuran ? 'quran' : 'sectionFolder');
+    setScreen(savedAsQuran ? (quranSelectedSurah ? 'quranSurah' : 'quran') : 'sectionFolder');
   }
 
   async function deleteGlobalItem(id) {
@@ -2563,14 +2574,39 @@ export default function App() {
     );
   }
 
-  function openQuranEditor() {
+  function openQuranEditor(surah = quranSelectedSurah) {
     clearForm();
     setSelectedScholar('');
     setQuranMode(true);
     setFormResourceType('تفسیر');
     setSelectedSection('قرآن کریم او علوم القرآن');
     setSelectedFolder('قرآن کریم');
+    if (surah) setFormSurah(String(surah.number));
     setScreen('quranEditor');
+  }
+
+  function openQuranSurah(surah) {
+    setQuranSelectedSurah(surah);
+    setQuranSearch('');
+    setScreen('quranSurah');
+  }
+
+  function getQuranSurahItems() {
+    if (!quranSelectedSurah) return [];
+    const number = String(quranSelectedSurah.number);
+    const name = quranSelectedSurah.name.toLowerCase();
+    return globalItems
+      .filter(item => item.resourceType === 'quran' && (
+        String(item.surahNumber || '').trim() === number ||
+        String(item.surah || '').trim() === number ||
+        String(item.surah || '').trim().toLowerCase() === name ||
+        String(item.surahName || '').trim().toLowerCase() === name
+      ))
+      .sort((a, b) => {
+        const ayahA = Number(String(a.ayah || '').match(/\\d+/)?.[0] || 0);
+        const ayahB = Number(String(b.ayah || '').match(/\\d+/)?.[0] || 0);
+        return ayahA - ayahB;
+      });
   }
 
   function getQuranResults() {
@@ -4531,29 +4567,47 @@ export default function App() {
           </ScrollView>
         )}
 
-        {/* قرآن کریم: د سورت او آیت له مخې سرچینې */}
+        {/* قرآن کریم: لومړی سورت، بیا د هماغه سورت آیتونه او درسونه */}
         {screen === 'quran' && (
           <ScrollView contentContainerStyle={styles.pageContent}>
-            <PageHeader title="قرآن کریم" subtitle="د سورت، آیت، ژباړې، تفسیر او تلاوت مواد" onBack={goBack} />
-            <Field label="سورت، آیت، موضوع یا د عالم نوم" value={quranSearch} onChangeText={setQuranSearch} placeholder="لکه: 2:255 یا البقره یا د مفسر نوم" />
-            <Text style={styles.smallMuted}>د آیت مستقیم لټون د سورت او آیت په شمېره وکړئ؛ بېلګه: 2:255</Text>
-            <GoldButton title="＋ د قرآن نوی مواد ثبت کړئ" onPress={openQuranEditor} />
-            {getQuranResults().map(item => (
+            <PageHeader title="قرآن کریم او علوم القرآن" subtitle="لومړی سورت وټاکئ، بیا د هغه سورت آیتونو ته درسونه ثبت کړئ" onBack={goBack} />
+            <Field label="د سورت نوم یا شمېره ولټوئ" value={quranSearch} onChangeText={setQuranSearch} placeholder="لکه: البقرة یا 2" />
+            <GoldButton title="＋ د قرآن نوی مواد ثبت کړئ (عمومي)" onPress={() => { setQuranSelectedSurah(null); openQuranEditor(null); }} />
+            {QURAN_SURAHS.filter(surah => !quranSearch.trim() || surah.name.includes(quranSearch.trim()) || String(surah.number).includes(quranSearch.trim())).map(surah => {
+              const count = globalItems.filter(item => item.resourceType === 'quran' && (String(item.surahNumber || item.surah || '').trim() === String(surah.number) || String(item.surahName || '').trim() === surah.name)).length;
+              return (
+                <TouchableOpacity key={surah.number} style={styles.lessonCard} onPress={() => openQuranSurah(surah)} activeOpacity={0.8}>
+                  <View style={styles.flexText}>
+                    <Text style={styles.lessonTitle}>{surah.number}. سورة {surah.name}</Text>
+                    <Text style={styles.smallMuted}>{count} ثبت شوي درسونه او مواد · د آیتونو ترتیب</Text>
+                  </View>
+                  <Text style={styles.lessonArrow}>‹</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        )}
+
+        {screen === 'quranSurah' && quranSelectedSurah && (
+          <ScrollView contentContainerStyle={styles.pageContent}>
+            <PageHeader title={`سورة ${quranSelectedSurah.name}`} subtitle={`سورت نمبر ${quranSelectedSurah.number} · د آیتونو او درسونو جلا ترتیب`} onBack={goBack} />
+            <GoldButton title="＋ په همدې سورت کې نوی درس / تفسیر اضافه کړئ" onPress={openQuranEditor} />
+            <Text style={styles.smallMuted}>هر مواد د آیت شمېرې یا د آیتونو د لړۍ له مخې ثبت کړئ؛ دلته به په اتومات ډول د آیتونو له مخې منظم ښکاره شي.</Text>
+            {getQuranSurahItems().map((item, index) => (
               <TouchableOpacity key={item.id} style={styles.lessonCard} onPress={() => {
-                const match = quranSearch.trim().replace(/[۰-۹٠-٩]/g, digit => ({'۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9','٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9'}[digit] || digit)).match(/^(\d+)\s*[:،-]\s*(\d+)$/);
-                setQuranTargetSurah(match ? match[1] : (item.surah || ''));
-                setQuranTargetAyah(match ? match[2] : '');
+                setQuranTargetSurah(String(quranSelectedSurah.number));
+                setQuranTargetAyah(item.ayah || '');
                 openItem(item);
-              }}>
+              }} activeOpacity={0.8}>
                 <View style={styles.flexText}>
-                  <Text style={styles.lessonTitle}>{item.title}</Text>
-                  <Text style={styles.smallMuted}>سورت: {item.surah || '—'}  |  آیت: {item.ayah || '—'}</Text>
-                  <Text style={styles.smallMuted}>{item.scholar || 'عالم نه دی ټاکل شوی'} · {item.audio ? 'آډیو شته' : 'آډیو نشته'} · {item.pdf ? 'PDF شته' : 'PDF نشته'} · {(item.pageMap || []).length ? 'د PDF مخونه نښه شوي' : 'د PDF مخونو نقشه نشته'} · {(item.audioMap || []).length ? `د آډیو ${(item.audioMap || []).length} وختونه ثبت دي` : 'د آډیو وختونه نه دي ثبت'}</Text>
+                  <Text style={styles.lessonTitle}>{`آیت ${item.ayah || 'نه دی ټاکل شوی'} · ${item.title}`}</Text>
+                  <Text style={styles.smallMuted}>{item.resourceCategory || 'درس'} · {item.scholar || 'عالم نه دی ټاکل شوی'}</Text>
+                  <Text style={styles.smallMuted}>{item.audio ? 'آډیو شته' : 'آډیو نشته'} · {item.pdf ? 'PDF شته' : 'PDF نشته'} · {item.text ? 'متن شته' : 'متن نشته'}</Text>
                 </View>
                 <Text style={styles.lessonArrow}>‹</Text>
               </TouchableOpacity>
             ))}
-            {getQuranResults().length === 0 && <Text style={styles.emptyText}>تر اوسه د قرآن مواد نه دي ثبت شوي. د موادو ثبتولو تڼۍ ووهئ.</Text>}
+            {getQuranSurahItems().length === 0 && <Text style={styles.emptyText}>په دې سورت کې تر اوسه درس نه دی ثبت شوی. د پورته تڼۍ له لارې لومړی درس اضافه کړئ.</Text>}
           </ScrollView>
         )}
 
@@ -4561,7 +4615,7 @@ export default function App() {
           <ScrollView contentContainerStyle={styles.pageContent}>
             <PageHeader title="د قرآن مواد ثبتول" subtitle="ژباړه، تفسیر یا تلاوت" onBack={goBack} />
             <Field label="د موادو نوم" value={formTitle} onChangeText={setFormTitle} placeholder="لکه: د آیت پښتو ژباړه" />
-            <Field label="سورت شمېره یا نوم" value={formSurah} onChangeText={setFormSurah} placeholder="لکه: 2 یا البقره" />
+            <Field label={quranSelectedSurah ? `ټاکل شوی سورت: ${quranSelectedSurah.name} (${quranSelectedSurah.number})` : "سورت شمېره یا نوم"} value={formSurah} onChangeText={setFormSurah} placeholder="لکه: 2 یا البقرة" />
             <Field label="آیت شمېره یا د آیتونو لړۍ" value={formAyah} onChangeText={setFormAyah} placeholder="لکه: 1-286" />
             <View style={styles.formCard}>
               <Text style={[styles.cardHeading, { color: settings.headingColor }]}>د PDF د آیتونو او مخونو نقشه (اختیاري)</Text>
