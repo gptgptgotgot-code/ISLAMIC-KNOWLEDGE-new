@@ -1,4 +1,4 @@
-       
+      
 import React, { useState, useEffect, useRef } from 'react';
 
 import {
@@ -93,18 +93,6 @@ const STORAGE = {
   mediaAssets: 'media_assets_v1',
   prayerNotificationSettings: 'prayer_notification_settings_v1'
 };
-
-// ==================================================
-// 04 - د علماوو نومونه
-// ==================================================
-
-const SCHOLARS = [
-  'شیخ القرآن علامه سید عبدالسلام رستمي رحمه الله',
-  'شیخ القرآن أبو محمد أمين الله البشاوري حفظه الله',
-  'شیخ القرآن أبو محمد سردارولي ثاقب رحمه الله',
-  'شیخ القرآن أبو عبيدالله متوكل رحمه الله',
-  'شیخ القرآن أبو عمر عبدالمنان محمدي حفظه الله'
-];
 
 // ==================================================
 // 05 - د علمي برخو نومونه
@@ -327,6 +315,7 @@ export default function App() {
   const [structuredQuranKind, setStructuredQuranKind] = useState('تفسیر');
   const [selectedHadithBook, setSelectedHadithBook] = useState(null);
   const [hadithChapterInput, setHadithChapterInput] = useState('');
+  const [scholarNameInput, setScholarNameInput] = useState('');
   const [prayerNotificationSettings, setPrayerNotificationSettings] = useState({ fajr: true, dhuhr: true, asr: true, maghrib: true, isha: true, offsets: { fajr: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0 } });
   // د بیانونو، اذکارو او دعاوو د تقسیم اوقات لپاره جلا فورم
   const [scheduleTitle, setScheduleTitle] = useState('');
@@ -357,6 +346,7 @@ export default function App() {
   const lastProgressSaveRef = useRef(0);
   const pendingAudioSeekRef = useRef(null);
   const audioFinishHandledRef = useRef(false);
+  const lastHandledNotificationRef = useRef('');
 
   // ------------------------------------------------
   // 10.4 - د اپلیکیشن تنظیمات
@@ -449,6 +439,35 @@ export default function App() {
   useEffect(() => {
     loadAllData();
   }, []);
+
+  // د خبرتیا په کېکاږلو اړوند کتاب، درس یا ذکر پرانیزي.
+  useEffect(() => {
+    const handleNotificationResponse = response => {
+      const request = response?.notification?.request;
+      const data = request?.content?.data || {};
+      const identifier = request?.identifier || '';
+      if (identifier && lastHandledNotificationRef.current === identifier) return;
+      if (data.contentId) {
+        const item = globalItems.find(row => row.id === data.contentId);
+        if (!item) return;
+        lastHandledNotificationRef.current = identifier;
+        setSelectedItem(item);
+        setScreen('itemDetails');
+        return;
+      }
+      if (data.dhikrId) {
+        const dhikrItem = adhkar.find(row => row.id === data.dhikrId);
+        if (!dhikrItem) return;
+        lastHandledNotificationRef.current = identifier;
+        setSelectedDhikr(dhikrItem);
+        setSelectedFolder(dhikrItem.category || 'عمومي اذکار');
+        setScreen('dhikrDetails');
+      }
+    };
+    const subscription = Notifications.addNotificationResponseReceivedListener(handleNotificationResponse);
+    Notifications.getLastNotificationResponseAsync().then(handleNotificationResponse).catch(() => {});
+    return () => subscription.remove();
+  }, [globalItems, adhkar]);
 
   async function loadAllData() {
     try {
@@ -1105,6 +1124,12 @@ export default function App() {
       newItem,
       ...globalItems
     ]);
+    if (newItem.scholar) {
+      const knownScholars = structuredLibrary.scholars || [];
+      if (!knownScholars.includes(newItem.scholar)) {
+        await saveStructuredLibrary({ ...structuredLibrary, scholars: [newItem.scholar, ...knownScholars] });
+      }
+    }
 
     if (editorType && editorType.startsWith('hadith:')) {
       const [, bookId, chapterId] = editorType.split(':');
@@ -1307,6 +1332,13 @@ export default function App() {
     const queue = audioQueueRef.current.length ? audioQueueRef.current : getAudioQueue();
     const current = audioItemRef.current;
     const index = queue.findIndex(item => item.id === current?.id);
+    // د اذکارو خپلواک آډیوګانې د عمومي درسونو په قطار کې نه وي؛ بل فایل مه پیلوئ.
+    if (index < 0) {
+      if (audioSoundRef.current) {
+        try { await audioSoundRef.current.pause(); } catch (error) {}
+      }
+      return;
+    }
     const nextIndex = previous ? index - 1 : index + 1;
     if (nextIndex < 0 || nextIndex >= queue.length) {
       if (audioSoundRef.current) {
@@ -1783,6 +1815,8 @@ export default function App() {
 
     const scheduledIds = [];
     const scheduleId = `plan-${Date.now()}`;
+    const linkedContent = globalItems.find(item => String(item.title || '').trim() === scheduleTitle.trim());
+    const linkedDhikr = adhkar.find(item => String(item.title || '').trim() === scheduleTitle.trim());
     try {
       for (const clock of uniqueTimes) {
         const [hour, minute] = clock.split(':').map(Number);
@@ -1807,9 +1841,9 @@ export default function App() {
         const notificationId = await Notifications.scheduleNotificationAsync({
           content: {
             title: `میراث اسلام – ${scheduleTitle.trim()}`,
-            body: `${label}: ${scheduleKind} (${clock})`,
+            body: `${label}: ${scheduleKind} (${clock}) – د پرانیستلو لپاره خبرتیا کېکاږئ`,
             sound: true,
-            data: { scheduleId, kind: scheduleKind, clock }
+            data: { scheduleId, contentId: linkedContent?.id || '', dhikrId: linkedDhikr?.id || '', kind: scheduleKind, clock }
           },
           trigger
         });
@@ -1822,6 +1856,8 @@ export default function App() {
       const plan = {
         id: scheduleId,
         type: 'schedulePlan',
+        contentId: linkedContent?.id || '',
+        dhikrId: linkedDhikr?.id || '',
         title: scheduleTitle.trim(),
         kind: scheduleKind,
         date: scheduleDate.trim() || 'هره ورځ',
@@ -1972,6 +2008,10 @@ export default function App() {
       text: formText.trim(),
       translation: formDescription,
       count: Number(formCount) || 1,
+      audio: formAudio || '',
+      pdf: formPDF || '',
+      audioAssetId: mediaAssets.find(asset => asset.uri === formAudio)?.id || '',
+      pdfAssetId: mediaAssets.find(asset => asset.uri === formPDF)?.id || '',
       category: selectedFolder || 'عمومي اذکار',
       createdAt: new Date().toISOString()
     };
@@ -2016,6 +2056,22 @@ export default function App() {
     setSelectedScholar(name);
     setSelectedSection('');
     setScreen('scholar');
+  }
+
+  async function addScholarFolder() {
+    const name = scholarNameInput.trim();
+    if (!name) {
+      Alert.alert('خبرتیا', 'د عالم نوم ولیکئ.');
+      return;
+    }
+    const current = structuredLibrary.scholars || [];
+    if ([...current, ...globalItems.map(item => item.scholar).filter(Boolean)].some(value => value.trim() === name)) {
+      Alert.alert('موجود دی', 'د همدې عالم فولډر له مخکې شته.');
+      return;
+    }
+    await saveStructuredLibrary({ ...structuredLibrary, scholars: [name, ...current] });
+    setScholarNameInput('');
+    Alert.alert('بریالی شو', 'د عالم فولډر جوړ شو. اوس ورته کتابونه او درسونه اپلوډ کولای شئ.');
   }
 
   function openOldCategory(section) {
@@ -2376,6 +2432,10 @@ export default function App() {
 
   function openFolder(folder) {
     setSelectedFolder(folder);
+    if (canonicalSection(selectedSection) === 'حدیث او سنت' && folder === 'صحاح سته') {
+      setScreen('hadithStructure');
+      return;
+    }
     setScreen('sectionFolder');
   }
 
@@ -2436,7 +2496,7 @@ export default function App() {
     clearForm();
     setFormTitle('');
     setFormDescription(`${book.name} – ${chapter.name}`);
-    setFormScholar(book.author);
+    setFormScholar('');
     setFormResourceType('حدیث');
     setFormSource('د حدیث د نسخې/چاپ معلومات دلته ولیکئ');
     setSelectedSection('حدیث او سنت');
@@ -2887,7 +2947,14 @@ export default function App() {
               onBack={goBack}
             />
 
-            {[...new Set([...SCHOLARS, ...globalItems.map(item => item.scholar).filter(Boolean)])].map((scholar, index) => (
+            <View style={styles.formCard}>
+              <Text style={[styles.cardHeading, { color: settings.headingColor }]}>د عالم نوی فولډر جوړول</Text>
+              <Field textColor={settings.textColor} label="د عالم بشپړ نوم" value={scholarNameInput} onChangeText={setScholarNameInput} placeholder="د عالم نوم ولیکئ" />
+              <GoldButton title="＋ عالم اضافه کړه" onPress={addScholarFolder} />
+              <Text style={styles.smallMuted}>د عالم فولډرونه له مخکې نه ډک نه دي؛ اډمین یې جوړوي، یا د لومړي درس اپلوډ پر مهال په خپله جوړېږي.</Text>
+            </View>
+
+            {[...new Set([...(structuredLibrary.scholars || []), ...globalItems.map(item => item.scholar).filter(Boolean)])].map((scholar, index) => (
               <TouchableOpacity
                 key={scholar}
                 style={styles.scholarCard}
@@ -3890,6 +3957,27 @@ export default function App() {
               keyboardType="numeric"
             />
 
+            <View style={styles.formCard}>
+              <Text style={[styles.cardHeading, { color: settings.headingColor }]}>د ذکر اړوند فایلونه</Text>
+              <GoldButton title="♫ د ذکر آډیو کلیپ وټاکئ" secondary onPress={async () => {
+                try {
+                  const result = await DocumentPicker.getDocumentAsync({ type: ['audio/*'], copyToCacheDirectory: true, multiple: false });
+                  if (!result.canceled && result.assets?.length) setFormAudio(await saveMediaAsset(result.assets[0], 'audio'));
+                } catch (error) { Alert.alert('ستونزه', 'آډیو فایل انتخاب نه شو.'); }
+              }} />
+              {formAudio ? <Text style={styles.fileSelected}>آډیو کلیپ انتخاب شو ✓</Text> : null}
+              {mediaAssets.filter(asset => asset.kind === 'audio').map(asset => <TouchableOpacity key={asset.id} style={styles.optionRow} onPress={() => setFormAudio(asset.uri)}><Text style={[styles.optionText, { color: settings.textColor }]}>{asset.name}</Text><Text style={styles.optionCheck}>{formAudio === asset.uri ? '✓' : '＋'}</Text></TouchableOpacity>)}
+              <GoldButton title="▤ د ذکر PDF فایل وټاکئ" secondary onPress={async () => {
+                try {
+                  const result = await DocumentPicker.getDocumentAsync({ type: 'application/pdf', copyToCacheDirectory: true, multiple: false });
+                  if (!result.canceled && result.assets?.length) setFormPDF(await saveMediaAsset(result.assets[0], 'pdf'));
+                } catch (error) { Alert.alert('ستونزه', 'PDF فایل انتخاب نه شو.'); }
+              }} />
+              {formPDF ? <Text style={styles.fileSelected}>PDF انتخاب شو ✓</Text> : null}
+              {mediaAssets.filter(asset => asset.kind === 'pdf').map(asset => <TouchableOpacity key={asset.id} style={styles.optionRow} onPress={() => setFormPDF(asset.uri)}><Text style={[styles.optionText, { color: settings.textColor }]}>{asset.name}</Text><Text style={styles.optionCheck}>{formPDF === asset.uri ? '✓' : '＋'}</Text></TouchableOpacity>)}
+              <Text style={styles.smallMuted}>یو ځل اپلوډ شوی فایل له دې کتابتون څخه د نورو اذکارو او درسونو لپاره هم ټاکل کېدای شي.</Text>
+            </View>
+
             <GoldButton
               title={t("ذکر خوندي کړئ")}
               onPress={addDhikr}
@@ -3924,6 +4012,10 @@ export default function App() {
                 {t("د تکرار شمېر:")}{selectedDhikr?.count || 1}
               </Text>
             </View>
+
+            {selectedDhikr?.audio ? <GoldButton title="▶ د ذکر آډیو واوره او نښه یې کړه" onPress={() => startAudio(selectedDhikr)} /> : null}
+            {selectedDhikr?.pdf ? <GoldButton title="▤ د ذکر PDF ولوله او مخونه نښه کړه" secondary onPress={() => openPdf(selectedDhikr, 1)} /> : null}
+            {(selectedDhikr?.audio || selectedDhikr?.pdf) ? <Text style={styles.smallMuted}>د آډیو په پلیر کې د اوسني وخت نښه خوندي کولای شئ؛ د PDF په لوستونکي کې د هر مخ نښه او یادښت ثبتولای شئ.</Text> : null}
 
             <GoldButton
               title={t("ذکر شریکول")}
@@ -4034,6 +4126,13 @@ export default function App() {
               subtitle={t("د میراث اسلام شخصي تنظیمات")}
               onBack={goBack}
             />
+
+            <View style={styles.formCard}>
+              <Text style={[styles.cardHeading, { color: settings.headingColor }]}>د بیانونو، کتابونو او اذکارو وختي خبرتیاوې</Text>
+              <Text style={styles.smallMuted}>د بیان، ذکر یا دعا نوم، آډیو، ټاکلې نېټه او د خبرتیا وختونه تنظیم کړئ. خبرتیاوې هره ورځ یا په ټاکلې نېټه تکرارېدای شي.</Text>
+              <GoldButton title="◷ د بیانونو او اذکارو تقسیم اوقات تنظیم کړه" onPress={() => setScreen('schedulePlanner')} />
+              <GoldButton title="＋ نوې ساده خبرتیا" secondary onPress={() => { clearForm(); setScreen('reminderEditor'); }} />
+            </View>
 
             <Text style={[styles.cardHeading, { color: settings.headingColor }]}>
               {t("د اپلیکیشن ژبه")}</Text>
