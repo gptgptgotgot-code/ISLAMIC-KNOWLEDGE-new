@@ -120,6 +120,8 @@ const SECTIONS = [
 
 // د هرې علمي برخې ځانګړي فرعي فولډرونه. اته عمومي فولډرونه په HOME_SECTION_GROUPS کې پر خپل ځای پاتې دي.
 // هغه فولډرونه چې children لري، لومړی د منځنۍ کچې په توګه ښکاري؛ بیا یې فرعي فولډرونه پرانیستل کېږي.
+const ALLAH_NAMES = 'الله|الرحمن|الرحيم|الملك|القدوس|السلام|المؤمن|المهيمن|العزيز|الجبار|المتكبر|الخالق|البارئ|المصور|الغفار|القهار|الوهاب|الرزاق|الفتاح|العليم|القابض|الباسط|الخافض|الرافع|المعز|المذل|السميع|البصير|الحكم|العدل|اللطيف|الخبير|الحليم|العظيم|الغفور|الشكور|العلي|الكبير|الحفيظ|المقيت|الحسيب|الجليل|الكريم|الرقيب|المجيب|الواسع|الحكيم|الودود|المجيد|الباعث|الشهيد|الحق|الوكيل|القوي|المتين|الولي|الحميد|المحصي|المبدئ|المعيد|المحيي|المميت|الحي|القيوم|الواجد|الماجد|الواحد|الصمد|القادر|المقتدر|المقدم|المؤخر|الأول|الآخر|الظاهر|الباطن|الوالي|المتعالي|البر|التواب|المنتقم|العفو|الرؤوف|مالك الملك|ذو الجلال والإكرام|المقسط|الجامع|الغني|المغني|المانع|الضار|النافع|النور|الهادي|البديع|الباقي|الوارث|الرشيد|الصبور'.split('|');
+
 const SECTION_FOLDER_TREE = {
   'قرآن کریم او علوم القرآن': [
     { name: 'قرآن کریم' },
@@ -141,13 +143,13 @@ const SECTION_FOLDER_TREE = {
     { name: 'فقه مقارن او دلایل' }, { name: 'نور پخواني مواد' }
   ],
   'عقیده او توحید': [
-    { name: 'توحید' }, { name: 'ایمان' }, { name: 'اسماء او صفات' }, { name: 'فرقې او مذاهب' }, { name: 'ردود او مناقشې' }, { name: 'نور پخواني مواد' }
+    { name: 'توحید' }, { name: 'ایمان' }, { name: 'اسماء او صفات', children: ALLAH_NAMES }, { name: 'فرقې او مذاهب' }, { name: 'ردود او مناقشې' }, { name: 'نور پخواني مواد' }
   ],
   'اصول الفقه او قواعد': [
     { name: 'اصول الفقه' }, { name: 'قواعد فقهیه' }, { name: 'مقاصد الشریعة' }, { name: 'دلیل او استنباط' }, { name: 'نور پخواني مواد' }
   ],
   'سیرت او شمائل نبوي ﷺ': [
-    { name: 'مکي ژوند' }, { name: 'مدني ژوند' }, { name: 'غزوات او سریې' }, { name: 'شمائل او خصائص' }, { name: 'نور پخواني مواد' }
+    { name: 'مکي ژوند' }, { name: 'مدني ژوند' }, { name: 'غزوات او سریې' }, { name: 'شمائل او خصائص' }, { name: 'سیرت الأنبياء' }, { name: 'نور پخواني مواد' }
   ],
   'اسلامي تاریخ او تمدن': [
     { name: 'د نبوي دورې تاریخ' }, { name: 'خلافت راشده' }, { name: 'اسلامي دولتونه' }, { name: 'تمدن او کلتور' }, { name: 'نور پخواني مواد' }
@@ -429,6 +431,10 @@ export default function App() {
   const [selectedFolder, setSelectedFolder] = useState('');
   const [selectedFolderParent, setSelectedFolderParent] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
+  const [selectedAcademicSurah, setSelectedAcademicSurah] = useState(null);
+  const [selectedAcademicAyah, setSelectedAcademicAyah] = useState('');
+  const [selectedAcademicType, setSelectedAcademicType] = useState('');
+  const [selectedAcademicBook, setSelectedAcademicBook] = useState(null);
   const [selectedBook, setSelectedBook] = useState(null);
   const [selectedDhikr, setSelectedDhikr] = useState(null);
   const [mediaReturnScreen, setMediaReturnScreen] = useState('oldBook');
@@ -831,8 +837,13 @@ export default function App() {
       section: 'home',
       sectionSubFolders: 'section',
       sectionFolder: selectedFolderParent ? 'sectionSubFolders' : 'section',
-      itemDetails: 'sectionFolder',
-      lessonEditor: 'sectionFolder',
+      quranAcademicSurahs: 'sectionFolder',
+      quranAcademicAyahs: 'quranAcademicSurahs',
+      quranAcademicAyahDetails: 'quranAcademicAyahs',
+      arabicBookEditor: 'sectionFolder',
+      arabicBookDetails: 'sectionFolder',
+      itemDetails: selectedAcademicBook ? 'arabicBookDetails' : (selectedAcademicType ? 'quranAcademicAyahDetails' : 'sectionFolder'),
+      lessonEditor: selectedAcademicBook ? 'arabicBookDetails' : (selectedAcademicType ? 'quranAcademicAyahDetails' : 'sectionFolder'),
       notes: 'home',
       noteEditor: 'notes',
       reminders: 'home',
@@ -1214,6 +1225,27 @@ export default function App() {
       return;
     }
 
+    if (screen === 'arabicBookEditor') {
+      const book = {
+        id: `arabic-book-${Date.now()}`,
+        title: formTitle.trim(),
+        description: formDescription,
+        scholar: formScholar.trim(),
+        source: formSource.trim(),
+        permission: formPermission.trim(),
+        pdf: formPDF,
+        audio: formAudio,
+        section: selectedSection,
+        folder: selectedFolder,
+        resourceType: 'arabicAcademicBook',
+        createdAt: new Date().toISOString()
+      };
+      await saveGlobalItems([book, ...globalItems]);
+      clearForm();
+      setScreen('sectionFolder');
+      return;
+    }
+
     const newItem = {
       id: Date.now().toString(),
       title: formTitle.trim(),
@@ -1236,6 +1268,12 @@ export default function App() {
       pageMap: parsedPageMap,
       audioMap: parsedAudioMap,
       resourceType: quranMode ? 'quran' : formResourceType,
+      academicQuran: !!selectedAcademicType,
+      academicType: selectedAcademicType || '',
+      academicSurahNumber: selectedAcademicType && selectedAcademicSurah ? selectedAcademicSurah.number : '',
+      academicSurahName: selectedAcademicType && selectedAcademicSurah ? selectedAcademicSurah.name : '',
+      academicAyahNumber: selectedAcademicType ? selectedAcademicAyah : '',
+      bookId: selectedAcademicBook?.id || '',
       createdAt: new Date().toISOString()
     };
 
@@ -1250,7 +1288,9 @@ export default function App() {
     }
 
     clearForm();
-    setScreen(savedAsQuran ? 'quran' : 'sectionFolder');
+    if (selectedAcademicBook) { setScreen('arabicBookDetails'); }
+    else if (selectedAcademicType) { setScreen('quranAcademicAyahDetails'); }
+    else { setScreen(savedAsQuran ? 'quran' : 'sectionFolder'); }
   }
 
   async function deleteGlobalItem(id) {
@@ -2751,7 +2791,8 @@ export default function App() {
     return globalItems.filter(item =>
       (item.section === selectedSection || LEGACY_SECTION_MAP[item.section] === selectedSection) &&
       ([...names, ...legacyNames].includes(item.folder) ||
-        (item.resourceType === 'quran' && quranResourceTypes.includes(item.resourceCategory)))
+        (item.resourceType === 'quran' && quranResourceTypes.includes(item.resourceCategory)) ||
+        (item.academicQuran === true && quranResourceTypes.includes(item.academicType === 'ژباړه' ? 'ژباړه' : item.academicType)))
     ).length;
   }
 
@@ -2769,6 +2810,10 @@ export default function App() {
     setSelectedSection(canonical);
     setSelectedFolder('');
     setSelectedFolderParent('');
+    setSelectedAcademicType('');
+    setSelectedAcademicSurah(null);
+    setSelectedAcademicAyah('');
+    setSelectedAcademicBook(null);
     setScreen('section');
   }
 
@@ -2780,10 +2825,73 @@ export default function App() {
       setScreen('quran');
       return;
     }
+    if (selectedSection === 'قرآن کریم او علوم القرآن' && ['تفسیر', 'ژباړه او ترجمه'].includes(folder)) {
+      setSelectedAcademicType(folder === 'تفسیر' ? 'تفسیر' : 'ژباړه');
+      setSelectedAcademicSurah(null);
+      setSelectedAcademicAyah('');
+      setScreen('quranAcademicSurahs');
+      return;
+    }
+    setSelectedAcademicType('');
+    setSelectedAcademicSurah(null);
+    setSelectedAcademicAyah('');
+    setSelectedAcademicBook(null);
     setScreen('sectionFolder');
   }
 
   function openAddLesson() {
+    clearForm();
+    setSelectedAcademicBook(null);
+    setSelectedAcademicType('');
+    setScreen('lessonEditor');
+  }
+
+  function openQuranAcademicSurah(surah) {
+    setSelectedAcademicSurah(surah);
+    setSelectedAcademicAyah('');
+    setScreen('quranAcademicAyahs');
+  }
+
+  function openQuranAcademicAyah(ayah) {
+    setSelectedAcademicAyah(String(ayah));
+    setScreen('quranAcademicAyahDetails');
+  }
+
+  function getQuranAcademicItems(surahNumber, ayahNumber) {
+    const surah = QURAN_SURAHS.find(row => row.number === Number(surahNumber));
+    const legacyCategories = selectedAcademicType === 'ژباړه' ? ['ژباړه', 'ترجمه'] : ['تفسیر'];
+    return globalItems.filter(item => {
+      const isNewAcademicItem = item.academicQuran === true && item.academicType === selectedAcademicType && Number(item.academicSurahNumber) === Number(surahNumber);
+      const itemSurah = String(item.surahNumber || item.surah || '').trim();
+      const isLegacyQuranItem = item.resourceType === 'quran' && legacyCategories.includes(item.resourceCategory) && (Number(itemSurah) === Number(surahNumber) || itemSurah === surah?.name || String(item.surahName || '').trim() === surah?.name);
+      if (!isNewAcademicItem && !isLegacyQuranItem) return false;
+      if (ayahNumber == null) return true;
+      const ayahText = String(isNewAcademicItem ? item.academicAyahNumber : item.ayah || '').trim();
+      if (!ayahText) return false;
+      if (ayahText === String(ayahNumber)) return true;
+      const range = ayahText.match(/^(\d+)\s*[-–]\s*(\d+)$/);
+      return !!range && Number(ayahNumber) >= Number(range[1]) && Number(ayahNumber) <= Number(range[2]);
+    });
+  }
+
+  function openAddQuranAcademicLesson() {
+    clearForm();
+    setSelectedAcademicBook(null);
+    setScreen('lessonEditor');
+  }
+
+  function openAddArabicBook() {
+    clearForm();
+    setSelectedAcademicBook(null);
+    setScreen('arabicBookEditor');
+  }
+
+  function openArabicBook(book) {
+    setSelectedAcademicBook(book);
+    setScreen('arabicBookDetails');
+  }
+
+  function openAddArabicBookLesson() {
     clearForm();
     setScreen('lessonEditor');
   }
@@ -3549,6 +3657,61 @@ export default function App() {
             41 - د یوې برخې دننه درسونه
         ================================================== */}
 
+        {screen === 'quranAcademicSurahs' && (
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always">
+            <PageHeader title={selectedAcademicType === 'تفسیر' ? 'د تفسیر سورتونه' : 'د ژباړې سورتونه'} subtitle="ټول ۱۱۴ سورتونه؛ هر سورت خپل آیتونه لري" onBack={goBack} />
+            {QURAN_SURAHS.map(surah => {
+              const count = getQuranAcademicItems(surah.number, null).length;
+              return <TouchableOpacity key={surah.number} style={styles.listCard} onPress={() => openQuranAcademicSurah(surah)}><View style={styles.flexText}><Text style={[styles.listCardTitle, { color: settings.textColor }]}>{surah.number}. سورة {surah.name}</Text><Text style={styles.smallMuted}>{surah.ayahCount} آیتونه · {count} نوي ثبت شوي درسونه</Text></View><Text style={styles.lessonArrow}>‹</Text></TouchableOpacity>;
+            })}
+            {globalItems.filter(item => item.section === selectedSection && item.folder === selectedFolder && !item.academicQuran && item.resourceType !== 'quran').length > 0 && <Text style={[styles.cardHeading, { color: settings.headingColor, marginTop: 14 }]}>پخواني او عمومي مواد</Text>}
+            {globalItems.filter(item => item.section === selectedSection && item.folder === selectedFolder && !item.academicQuran && item.resourceType !== 'quran').map(item => <TouchableOpacity key={item.id} style={styles.lessonCard} onPress={() => openItem(item)}><View style={styles.flexText}><Text style={styles.lessonTitle}>{item.title}</Text><Text style={styles.smallMuted}>{item.resourceCategory || item.resourceType || 'مواد'}</Text></View><Text style={styles.lessonArrow}>‹</Text></TouchableOpacity>)}
+          </ScrollView>
+        )}
+
+        {screen === 'quranAcademicAyahs' && selectedAcademicSurah && (
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always">
+            <PageHeader title={`سورة ${selectedAcademicSurah.name}`} subtitle={`${selectedAcademicType} · ${selectedAcademicSurah.ayahCount} آیتونه`} onBack={goBack} />
+            {Array.from({ length: selectedAcademicSurah.ayahCount }, (_, index) => index + 1).map(ayah => {
+              const count = getQuranAcademicItems(selectedAcademicSurah.number, ayah).length;
+              return <TouchableOpacity key={ayah} style={styles.listCard} onPress={() => openQuranAcademicAyah(ayah)}><View style={styles.flexText}><Text style={[styles.listCardTitle, { color: settings.textColor }]}>آیت {ayah}</Text><Text style={styles.smallMuted}>{count} درسونه او مواد</Text></View><Text style={styles.lessonArrow}>‹</Text></TouchableOpacity>;
+            })}
+          </ScrollView>
+        )}
+
+        {screen === 'quranAcademicAyahDetails' && selectedAcademicSurah && selectedAcademicAyah && (
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always">
+            <PageHeader title={`سورة ${selectedAcademicSurah.name} · آیت ${selectedAcademicAyah}`} subtitle={selectedAcademicType} onBack={goBack} />
+            <GoldButton title="＋ د همدې آیت درس / مواد اضافه کړئ" onPress={openAddQuranAcademicLesson} />
+            {getQuranAcademicItems(selectedAcademicSurah.number, selectedAcademicAyah).map(item => <TouchableOpacity key={item.id} style={styles.lessonCard} onPress={() => openItem(item)}><View style={styles.flexText}><Text style={styles.lessonTitle}>{item.title}</Text><Text style={styles.smallMuted}>{item.scholar || ''} {item.pdf ? '· PDF' : ''} {item.audio ? '· آډیو' : ''}</Text></View><Text style={styles.lessonArrow}>‹</Text></TouchableOpacity>)}
+            {getQuranAcademicItems(selectedAcademicSurah.number, selectedAcademicAyah).length === 0 && <Text style={styles.emptyText}>د دې آیت لپاره لا درس نه دی ثبت شوی.</Text>}
+          </ScrollView>
+        )}
+
+        {screen === 'arabicBookEditor' && (
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always">
+            <PageHeader title="نوی عربي کتاب جوړول" subtitle={`${selectedSection} · ${selectedFolder}`} onBack={goBack} />
+            <Field textColor={settings.textColor} label="د کتاب نوم" value={formTitle} onChangeText={setFormTitle} placeholder="د کتاب نوم ولیکئ" />
+            <Field textColor={settings.textColor} label="د کتاب لنډه پېژندنه" value={formDescription} onChangeText={setFormDescription} multiline placeholder="د کتاب په اړه معلومات" />
+            <Field textColor={settings.textColor} label="لیکوال" value={formScholar} onChangeText={setFormScholar} placeholder="د لیکوال نوم" />
+            <Field textColor={settings.textColor} label="سرچینه او حواله" value={formSource} onChangeText={setFormSource} placeholder="ناشر، چاپ، حواله" />
+            <Field textColor={settings.textColor} label="د نشر اجازه" value={formPermission} onChangeText={setFormPermission} placeholder="د اجازې معلومات" />
+            <View style={styles.formCard}><Text style={[styles.cardHeading, { color: settings.headingColor }]}>د کتاب فایلونه (اختیاري)</Text><GoldButton title="▤ د کتاب PDF وټاکئ" secondary onPress={pickPDF} />{formPDF ? <Text style={styles.fileSelected}>PDF انتخاب شو ✓</Text> : null}<GoldButton title="♫ د کتاب آډیو وټاکئ" secondary onPress={pickAudio} />{formAudio ? <Text style={styles.fileSelected}>آډیو انتخاب شو ✓</Text> : null}</View>
+            <GoldButton title="کتاب خوندي کړئ" onPress={addGlobalItem} />
+          </ScrollView>
+        )}
+
+        {screen === 'arabicBookDetails' && selectedAcademicBook && (
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always">
+            <PageHeader title={selectedAcademicBook.title} subtitle={selectedAcademicBook.scholar || selectedFolder} onBack={goBack} />
+            {!!selectedAcademicBook.description && <Text style={styles.smallMuted}>{selectedAcademicBook.description}</Text>}
+            {!!selectedAcademicBook.pdf && <GoldButton title="▤ د کتاب PDF ولولئ" secondary onPress={() => openPdf(selectedAcademicBook, 1)} />}
+            <GoldButton title="＋ د دې کتاب نوی درس اضافه کړئ" onPress={openAddArabicBookLesson} />
+            {globalItems.filter(item => item.bookId === selectedAcademicBook.id).map(item => <TouchableOpacity key={item.id} style={styles.lessonCard} onPress={() => openItem(item)}><View style={styles.flexText}><Text style={styles.lessonTitle}>{item.title}</Text><Text style={styles.smallMuted}>{item.resourceCategory || 'درس'} {item.pdf ? '· PDF' : ''} {item.audio ? '· آډیو' : ''}</Text></View><Text style={styles.lessonArrow}>‹</Text></TouchableOpacity>)}
+            {globalItems.filter(item => item.bookId === selectedAcademicBook.id).length === 0 && <Text style={styles.emptyText}>په دې کتاب کې تر اوسه درس نه دی اضافه شوی.</Text>}
+          </ScrollView>
+        )}
+
         {screen === 'sectionFolder' && (
           <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader
@@ -3559,12 +3722,22 @@ export default function App() {
 
             {(selectedFolder === 'کتب تسعه' || selectedFolder === 'صحاح سته' || selectedFolder === 'مشکاة المصابيح') ? <GoldButton title={selectedFolder === 'مشکاة المصابيح' ? '📚 مشکاة المصابيح پرانیزئ' : '📚 د کتب تسعه کتابونه پرانیزئ'} secondary onPress={() => { setSittaCollection(selectedFolder === 'مشکاة المصابيح' ? 'mishkat' : 'kutubTisah'); setScreen('sittaBooks'); }} /> : null}
 
-            <GoldButton
-              title="＋ نوی درس اضافه کړئ"
-              onPress={openAddLesson}
-            />
-
-            {getFolderItems().map(item => (
+            {selectedSection === 'عربي ژبه او ادبیات' && selectedFolder !== 'نور پخواني مواد' ? (
+              <>
+                <GoldButton title="＋ نوی کتاب جوړ کړئ" onPress={openAddArabicBook} />
+                {globalItems.filter(item => item.resourceType === 'arabicAcademicBook' && item.section === selectedSection && item.folder === selectedFolder).map(book => (
+                  <TouchableOpacity key={book.id} style={styles.lessonCard} onPress={() => openArabicBook(book)}>
+                    <View style={styles.flexText}><Text style={styles.lessonTitle}>{book.title}</Text><Text style={styles.smallMuted}>{book.scholar || 'لیکوال نه دی ټاکل شوی'} · {globalItems.filter(row => row.bookId === book.id).length} درسونه</Text></View><Text style={styles.lessonArrow}>‹</Text>
+                  </TouchableOpacity>
+                ))}
+                {globalItems.filter(item => item.section === selectedSection && item.folder === selectedFolder && item.resourceType === 'arabicAcademicBook').length === 0 && <Text style={styles.emptyText}>تر اوسه کتاب نه دی جوړ شوی.</Text>}
+                {getFolderItems().filter(item => item.resourceType !== 'arabicAcademicBook' && !item.bookId).length > 0 && <Text style={[styles.cardHeading, { color: settings.headingColor, marginTop: 14 }]}>پخواني او عمومي مواد</Text>}
+                {getFolderItems().filter(item => item.resourceType !== 'arabicAcademicBook' && !item.bookId).map(item => <TouchableOpacity key={item.id} style={styles.lessonCard} onPress={() => openItem(item)}><View style={styles.flexText}><Text style={styles.lessonTitle}>{item.title}</Text><Text style={styles.smallMuted}>{item.resourceCategory || item.resourceType || 'مواد'}</Text></View><Text style={styles.lessonArrow}>‹</Text></TouchableOpacity>)}
+              </>
+            ) : (
+              <>
+                <GoldButton title="＋ نوی درس اضافه کړئ" onPress={openAddLesson} />
+                {getFolderItems().filter(item => item.resourceType !== 'arabicAcademicBook').map(item => (
               <View
                 key={item.id}
                 style={styles.lessonCard}
@@ -3594,7 +3767,9 @@ export default function App() {
                   <Text style={styles.deleteIcon}>{t("حذف")}</Text>
                 </TouchableOpacity>
               </View>
-            ))}
+                ))}
+              </>
+            )}
           </ScrollView>
         )}
 
@@ -3606,7 +3781,7 @@ export default function App() {
           <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader
               title={t("نوی درس")}
-              subtitle={t("د درس معلومات ثبت کړئ")}
+              subtitle={selectedAcademicBook ? `کتاب: ${selectedAcademicBook.title}` : (selectedAcademicType && selectedAcademicSurah ? `${selectedAcademicType} · سورة ${selectedAcademicSurah.name} · آیت ${selectedAcademicAyah}` : t("د درس معلومات ثبت کړئ"))}
               onBack={goBack}
             />
 
