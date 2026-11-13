@@ -89,20 +89,11 @@ const STORAGE = {
   pdfProgress: 'pdf_reading_progress_v1',
   learningProgress: 'learning_progress_v1',
   sitta: 'sihah_sitta_folders_v1',
-  adhkarReminders: 'adhkar_reminders_v1'
+  adhkarReminders: 'adhkar_reminders_v1',
+  scholarNames: 'scholar_names_v1'
 };
 
-// ==================================================
-// 04 - د علماوو نومونه
-// ==================================================
-
-const SCHOLARS = [
-  'شیخ القرآن علامه سید عبدالسلام رستمي رحمه الله',
-  'شیخ القرآن أبو محمد أمين الله البشاوري حفظه الله',
-  'شیخ القرآن أبو محمد سردارولي ثاقب رحمه الله',
-  'شیخ القرآن أبو عبيدالله متوكل رحمه الله',
-  'شیخ القرآن أبو عمر عبدالمنان محمدي حفظه الله'
-];
+// د علماوو فولډرونه د اډمین له خوا جوړېږي او د اپلوډ شوو درسونو له نومونو سره په اتومات ډول زیاتېږي.
 
 // ==================================================
 // 05 - د علمي برخو نومونه
@@ -135,7 +126,7 @@ const COMMON_SECTION_FOLDERS = [
 ];
 
 const SECTION_EXTRA_FOLDERS = {
-  'حدیث او علوم الحدیث': ['صحاح سته', 'نور حدیثي کتابونه', 'مصطلح الحدیث', 'تخریج او تحقیق', 'شرح الحدیث'],
+  'حدیث او علوم الحدیث': ['کتب تسعه', 'مشکاة المصابيح', 'نور حدیثي کتابونه', 'مصطلح الحدیث', 'تخریج او تحقیق', 'شرح الحدیث'],
   'فقه او فروع': ['عبادات', 'معاملات', 'نکاح او کورنۍ', 'طلاق', 'میراث', 'حنفي', 'مالکي', 'شافعي', 'حنبلي', 'فقه مقارن او دلایل'],
   'عقیده او توحید': ['توحید', 'ایمان', 'اسماء او صفات', 'فرقې او مذاهب', 'ردود او مناقشې'],
   'اصول الفقه او قواعد': ['اصول الفقه', 'قواعد فقهیه', 'مقاصد الشریعة', 'دلیل او استنباط'],
@@ -212,15 +203,24 @@ const DHIKR_CATEGORIES = [
   'عمومي اذکار'
 ];
 
-// صحاح سته: د شپږو کتابونو عربي Kitab نومونه، له انټرنېټ پرته.
+// د قرآن کریم ۱۱۴ سورتونه او د آیتونو شمېر.
+const QURAN_SURAHS = `الفاتحة|البقرة|آل عمران|النساء|المائدة|الأنعام|الأعراف|الأنفال|التوبة|يونس|هود|يوسف|الرعد|إبراهيم|الحجر|النحل|الإسراء|الكهف|مريم|طه|الأنبياء|الحج|المؤمنون|النور|الفرقان|الشعراء|النمل|القصص|العنكبوت|الروم|لقمان|السجدة|الأحزاب|سبأ|فاطر|يس|الصافات|ص|الزمر|غافر|فصلت|الشورى|الزخرف|الدخان|الجاثية|الأحقاف|محمد|الفتح|الحجرات|ق|الذاريات|الطور|النجم|القمر|الرحمن|الواقعة|الحديد|المجادلة|الحشر|الممتحنة|الصف|الجمعة|المنافقون|التغابن|الطلاق|التحريم|الملك|القلم|الحاقة|المعارج|نوح|الجن|المزمل|المدثر|القيامة|الإنسان|المرسلات|النبأ|النازعات|عبس|التكوير|الانفطار|المطففين|الانشقاق|البروج|الطارق|الأعلى|الغاشية|الفجر|البلد|الشمس|الليل|الضحى|الشرح|التين|العلق|القدر|البينة|الزلزلة|العاديات|القارعة|التكاثر|العصر|الهمزة|الفيل|قريش|الماعون|الكوثر|الكافرون|النصر|المسد|الإخلاص|الفلق|الناس`.split('|').map((name, index) => ({ number: index + 1, name, ayahCount: [7, 286, 200, 176, 120, 165, 206, 75, 129, 109, 123, 111, 43, 52, 99, 128, 111, 110, 98, 135, 112, 78, 118, 64, 77, 227, 93, 88, 69, 60, 34, 30, 73, 54, 45, 83, 182, 88, 75, 85, 54, 53, 89, 59, 37, 35, 38, 29, 18, 45, 60, 49, 62, 55, 78, 96, 29, 22, 24, 13, 14, 11, 11, 18, 12, 12, 30, 52, 52, 44, 28, 28, 20, 56, 40, 31, 50, 40, 46, 42, 29, 19, 36, 25, 22, 17, 19, 26, 30, 20, 15, 21, 11, 8, 8, 19, 5, 8, 8, 11, 11, 8, 3, 9, 5, 4, 7, 3, 6, 3, 5, 4, 5, 6][index] }));
+
+// کتب تسعه: نه حدیثي ټولګې، له انټرنېټ پرته.
 const SIHAH_SITTA = [
   { id: 'bukhari', name: 'صحیح البخاري', author: 'الإمام محمد بن إسماعيل البخاري' },
   { id: 'muslim', name: 'صحیح مسلم', author: 'الإمام مسلم بن الحجاج' },
   { id: 'abudawud', name: 'سنن أبي داود', author: 'الإمام أبو داود السجستاني' },
   { id: 'tirmidhi', name: 'جامع الترمذي', author: 'الإمام محمد بن عيسى الترمذي' },
   { id: 'nasai', name: 'سنن النسائي', author: 'الإمام أحمد بن شعيب النسائي' },
-  { id: 'ibnmajah', name: 'سنن ابن ماجه', author: 'الإمام محمد بن يزيد ابن ماجه' }
+  { id: 'ibnmajah', name: 'سنن ابن ماجه', author: 'الإمام محمد بن يزيد ابن ماجه' },
+  { id: 'muwatta', name: 'موطأ الإمام مالك', author: 'الإمام مالك بن أنس' },
+  { id: 'musnadahmad', name: 'مسند الإمام أحمد', author: 'الإمام أحمد بن حنبل' },
+  { id: 'darimi', name: 'سنن الدارمي', author: 'الإمام عبد الله الدارمي' }
 ];
+
+const MISHKAT_BOOK = { id: 'mishkat', name: 'مشكاة المصابيح', author: 'الخطيب التبريزي' };
+const MISHKAT_KITAB_TITLES = ['كتاب الإيمان','كتاب العلم','كتاب الطهارة','كتاب الصلاة','كتاب الجنائز','كتاب الزكاة','كتاب الصوم','كتاب الحج','كتاب البيوع','كتاب النكاح','كتاب الطلاق','كتاب العتق','كتاب الحدود','كتاب الإمارة والقضاء','كتاب الجهاد','كتاب الصيد والذبائح','كتاب الأطعمة','كتاب اللباس','كتاب الطب','كتاب الرؤيا','كتاب الآداب','كتاب الدعوات','كتاب الرقاق','كتاب الفتن','كتاب علامات الساعة','كتاب المناقب والفضائل','كتاب فضائل القرآن','كتاب الاعتصام بالكتاب والسنة'];
 // د صحاح سته د کتابونو اصلي عربي نومونه په App.js کې دننه دي؛
 // ټول فولډرونه له انټرنېټ پرته هم ښکاري. د نومونو سرچینه: د هر کتاب عربي فهرست.
 const SIHAH_SITTA_KITAB_TITLES = {
@@ -240,12 +240,12 @@ const SIHAH_SITTA_KITAB_TITLES = {
     'المقدمة', 'كتاب الطهارة', 'كتاب المياه', 'كتاب الحيض والاستحاضة', 'كتاب الغسل والتيمم', 'كتاب الصلاة', 'كتاب المواقيت', 'كتاب الأذان', 'كتاب المساجد', 'كتاب القبلة', 'كتاب الإمامة', 'كتاب الافتتاح', 'كتاب التطبيق', 'كتاب السهو', 'كتاب الجمعة', 'كتاب تقصير الصلاة في السفر', 'كتاب الكسوف', 'كتاب الاستسقاء', 'كتاب صلاة الخوف', 'كتاب صلاة العيدين', 'كتاب قيام الليل وتطوع النهار', 'كتاب الجنائز', 'كتاب الصيام', 'كتاب الزكاة', 'كتاب مناسك الحج', 'كتاب الجهاد', 'كتاب النكاح', 'كتاب الطلاق', 'كتاب الخيل', 'كتاب الإحباس', 'كتاب الوصايا', 'كتاب النحل', 'كتاب الهبة', 'كتاب الرقبى', 'كتاب العمرى', 'كتاب المزارعة', 'كتاب عشرة النساء', 'كتاب تحريم الدم', 'كتاب قسم الفيء', 'كتاب البيعة', 'كتاب العقيقة', 'كتاب الفرع والعتيرة', 'كتاب الصيد والذبائح', 'كتاب الضحايا', 'كتاب البيوع', 'كتاب القسامة', 'كتاب قطع السارق', 'كتاب الإيمان وشرائعه', 'كتاب الزينة من السنن', 'كتاب آداب القضاة', 'كتاب الاستعاذة', 'كتاب الأشربة'
   ],
   ibnmajah: [
-    'المقدمة', 'كتاب الطهارة وسننها', 'كتاب الصلاة', 'كتاب الأذان والسنة فيها', 'كتاب المساجد والجماعات', 'كتاب إقامة الصلاة والسنة فيها', 'كتاب الجنائز', 'كتاب الصيام', 'كتاب الزكاة', 'كتاب النكاح', 'كتاب الطلاق', 'كتاب الكفارات', 'كتاب التجارات', 'كتاب الأحكام', 'كتاب الهبات', 'كتاب الصدقات', 'كتاب الرهون', 'كتاب الشفعة', 'كتاب اللقطة', 'كتاب العتق', 'كتاب الحدود', 'كتاب الديات', 'كتاب الوصايا', 'كتاب الفرائض', 'كتاب الجهاد', 'كتاب المناسك', 'كتاب الأضاحي', 'كتاب الذبائح', 'كتاب الصيد', 'كتاب الأطعمة', 'كتاب الأشربة', 'كتاب الطب', 'كتاب اللباس', 'كتاب الأدب', 'كتاب الدعاء', 'كتاب تعبير الرؤيا', 'كتاب الفتن', 'كتاب الزهد'
-  ]
+    'المقدمة', 'كتاب الطهارة وسننها', 'كتاب الصلاة', 'كتاب الأذان والسنة فيها', 'كتاب المساجد والجماعات', 'كتاب إقامة الصلاة والسنة فيها', 'كتاب الجنائز', 'كتاب الصيام', 'كتاب الزكاة', 'كتاب النكاح', 'كتاب الطلاق', 'كتاب الكفارات', 'كتاب التجارات', 'كتاب الأحكام', 'كتاب الهبات', 'كتاب الصدقات', 'كتاب الرهون', 'كتاب الشفعة', 'كتاب اللقطة', 'كتاب العتق', 'كتاب الحدود', 'كتاب الديات', 'كتاب الوصايا', 'كتاب الفرائض', 'كتاب الجهاد', 'كتاب المناسك', 'كتاب الأضاحي', 'كتاب الذبائح', 'كتاب الصيد', 'كتاب الأطعمة', 'كتاب الأشربة', 'كتاب الطب', 'كتاب اللباس', 'كتاب الأدب', 'كتاب الدعاء', 'كتاب تعبير الرؤيا', 'كتاب الفتن', 'كتاب الزهد',
+  ],
+  muwatta: ['كتاب وقوت الصلاة','كتاب الطهارة','كتاب الصلاة','كتاب السهو','كتاب الجمعة','كتاب الصلاة في رمضان','كتاب صلاة الليل','كتاب صلاة الجماعة','كتاب قصر الصلاة في السفر','كتاب العيدين','كتاب صلاة الخوف','كتاب الكسوف','كتاب الاستسقاء','كتاب القبلة','كتاب القرآن','كتاب الجنائز','كتاب الزكاة','كتاب الصيام','كتاب الاعتكاف','كتاب الحج','كتاب الجهاد','كتاب النذور والأيمان','كتاب الضحايا','كتاب الذبائح','كتاب الصيد','كتاب العقيقة','كتاب الفرائض','كتاب النكاح','كتاب الطلاق','كتاب الرضاع','كتاب البيوع','كتاب القراض','كتاب المساقاة','كتاب كراء الأرض','كتاب الشفعة','كتاب الأقضية','كتاب الوصية','كتاب العتق والولاء','كتاب المكاتب','كتاب المدبر','كتاب الحدود','كتاب الأشربة','كتاب العقول','كتاب القسامة','كتاب الجامع'],
+  musnadahmad: ['مسند الخلفاء الراشدين','مسند العشرة المبشرين بالجنة','مسند أهل البيت','مسند المكثرين من الصحابة','مسند الأنصار','مسند باقي الصحابة'],
+  darimi: ['المقدمة','كتاب الطهارة','كتاب الصلاة','كتاب الزكاة','كتاب الصوم','كتاب المناسك','كتاب الأضاحي','كتاب الصيد','كتاب الأطعمة','كتاب الأشربة','كتاب الرؤيا','كتاب النكاح','كتاب الطلاق','كتاب الحدود','كتاب الديات','كتاب الجهاد','كتاب السير','كتاب البيوع','كتاب الاستئذان','كتاب الرقاق','كتاب فضائل القرآن','كتاب النذور والأيمان','كتاب الفرائض','كتاب الوصايا','كتاب العلم']
 };
-
-// د قرآن کریم ۱۱۴ سورتونه؛ د سورت له انتخاب وروسته د هماغه سورت درسونه او آیتونه جلا ښکاري.
-const QURAN_SURAHS = `الفاتحة|البقرة|آل عمران|النساء|المائدة|الأنعام|الأعراف|الأنفال|التوبة|يونس|هود|يوسف|الرعد|إبراهيم|الحجر|النحل|الإسراء|الكهف|مريم|طه|الأنبياء|الحج|المؤمنون|النور|الفرقان|الشعراء|النمل|القصص|العنكبوت|الروم|لقمان|السجدة|الأحزاب|سبأ|فاطر|يس|الصافات|ص|الزمر|غافر|فصلت|الشورى|الزخرف|الدخان|الجاثية|الأحقاف|محمد|الفتح|الحجرات|ق|الذاريات|الطور|النجم|القمر|الرحمن|الواقعة|الحديد|المجادلة|الحشر|الممتحنة|الصف|الجمعة|المنافقون|التغابن|الطلاق|التحريم|الملك|القلم|الحاقة|المعارج|نوح|الجن|المزمل|المدثر|القيامة|الإنسان|المرسلات|النبأ|النازعات|عبس|التكوير|الانفطار|المطففين|الانشقاق|البروج|الطارق|الأعلى|الغاشية|الفجر|البلد|الشمس|الليل|الضحى|الشرح|التين|العلق|القدر|البينة|الزلزلة|العاديات|القارعة|التكاثر|العصر|الهمزة|الفيل|قريش|الماعون|الكوثر|الكافرون|النصر|المسد|الإخلاص|الفلق|الناس`.split('|').map((name, index) => ({ number: index + 1, name }));
 
 // د کورپاڼې د ډیزاین د شخصي تنظیماتو اصلي ارزښتونه
 const DEFAULT_HOME_DESIGN = {
@@ -269,13 +269,19 @@ const DEFAULT_HOME_DESIGN = {
   perFolder: {}
 };
 
+const HOME_SECTION_GROUPS = [
+  { key: 'quran', title: 'قرآن او علوم القرآن', icon: 'book-outline', sections: ['قرآن کریم او علوم القرآن'] },
+  { key: 'hadith', title: 'حدیث او علوم الحدیث', icon: 'library-outline', sections: ['حدیث او علوم الحدیث'] },
+  { key: 'fiqh', title: 'فقه، فتاوی او مسائل', icon: 'scale-outline', sections: ['فقه او فروع', 'فتاوی او معاصرې مسئلې'] },
+  { key: 'aqeedah', title: 'عقیده او اصول', icon: 'shield-checkmark-outline', sections: ['عقیده او توحید', 'اصول الفقه او قواعد'] },
+  { key: 'seerah', title: 'سیرت او اسلامي تاریخ', icon: 'earth-outline', sections: ['سیرت او شمائل نبوي ﷺ', 'اسلامي تاریخ او تمدن', 'د صحابه‌وو او علماوو ژوندلیکونه'] },
+  { key: 'language', title: 'عربي ژبه او زده کړې', icon: 'language-outline', sections: ['عربي ژبه او ادبیات', 'اسلامي زده کړې او درسي نصاب'] },
+  { key: 'tazkiya', title: 'اخلاق، اذکار او دعوت', icon: 'heart-outline', sections: ['اخلاق، تزکیه او سلوک', 'دعوت، تبلیغ او خطابت', 'دعاوې، اذکار او عبادتي لارښود'] },
+  { key: 'society', title: 'کورنۍ او معاصر علوم', icon: 'people-outline', sections: ['اسلام، کورنۍ او ټولنه', 'اسلام او معاصر علوم'] }
+];
+
 const HOME_FOLDER_OPTIONS = [
-  { key: 'section_0', label: 'د قرآن کریم زده کړې' },
-  { key: 'section_1', label: 'د احادیثو زده کړې' },
-  { key: 'section_2', label: 'تاریخ او سیرت' },
-  { key: 'section_3', label: 'اسلامي علوم او فنون' },
-  { key: 'section_4', label: 'سوالونه او ځوابونه' },
-  { key: 'section_5', label: 'عمومي درسونه او کتابونه' },
+  ...HOME_SECTION_GROUPS.map(group => ({ key: `group_${group.key}`, label: group.title })),
   { key: 'scholars', label: 'دروس المشایخ' },
   { key: 'shortcut_0', label: 'خوښ شوي فایلونه' },
   { key: 'shortcut_1', label: 'سوالات او جوابات' },
@@ -320,6 +326,9 @@ export default function App() {
   // ------------------------------------------------
 
   const [selectedScholar, setSelectedScholar] = useState('');
+  const [scholarNames, setScholarNames] = useState([]);
+  const [newScholarName, setNewScholarName] = useState('');
+  const [selectedHomeGroup, setSelectedHomeGroup] = useState(null);
   const [selectedSection, setSelectedSection] = useState('');
   const [selectedFolder, setSelectedFolder] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
@@ -344,6 +353,7 @@ export default function App() {
   const [scheduleExtraTimes, setScheduleExtraTimes] = useState('');
   const [scheduleText, setScheduleText] = useState('');
   const [scheduleAudio, setScheduleAudio] = useState('');
+  const [schedulePDF, setSchedulePDF] = useState('');
   const [adhkar, setAdhkar] = useState([]);
   const [adhkarReminders, setAdhkarReminders] = useState([]);
   const [adhkarReminderTitle, setAdhkarReminderTitle] = useState('');
@@ -356,10 +366,13 @@ export default function App() {
   const [adhkarReminderEnabled, setAdhkarReminderEnabled] = useState(true);
   const [sittaData, setSittaData] = useState({});
   const [selectedSittaBook, setSelectedSittaBook] = useState(null);
+  const [sittaCollection, setSittaCollection] = useState('kutubTisah');
   const [selectedSittaKitab, setSelectedSittaKitab] = useState('');
   const [selectedSittaBab, setSelectedSittaBab] = useState(null);
   const [sittaBabName, setSittaBabName] = useState('');
   const [sittaHadithNumber, setSittaHadithNumber] = useState('');
+  const [sittaHadithAudioTime, setSittaHadithAudioTime] = useState('');
+  const [sittaHadithPdfPage, setSittaHadithPdfPage] = useState('');
   const [favorites, setFavorites] = useState([]);
   const [learningProgress, setLearningProgress] = useState([]);
   const [audioMarks, setAudioMarks] = useState([]);
@@ -489,6 +502,17 @@ export default function App() {
           else setScreen('adhkarHome');
         }).catch(() => setScreen('adhkarHome'));
       }
+      if (data.scheduleId) {
+        AsyncStorage.getItem(STORAGE.reminders).then(raw => {
+          const rows = raw ? JSON.parse(raw) : [];
+          const plan = rows.find(row => row.id === data.scheduleId);
+          if (plan) {
+            if (plan.audio) startAudio({ ...plan, section: plan.kind || 'بیان', scholar: '' }, 0);
+            else if (plan.pdf) openPdf({ ...plan, title: plan.title, pdf: plan.pdf }, 1);
+            else setScreen('schedulePlanner');
+          } else setScreen('schedulePlanner');
+        }).catch(() => setScreen('schedulePlanner'));
+      }
     };
     Notifications.getLastNotificationResponseAsync().then(openFromNotification).catch(() => {});
     const subscription = Notifications.addNotificationResponseReceivedListener(openFromNotification);
@@ -511,7 +535,8 @@ export default function App() {
         AsyncStorage.getItem(STORAGE.pdfMarks),
         AsyncStorage.getItem(STORAGE.learningProgress),
         AsyncStorage.getItem(STORAGE.sitta),
-        AsyncStorage.getItem(STORAGE.adhkarReminders)
+        AsyncStorage.getItem(STORAGE.adhkarReminders),
+        AsyncStorage.getItem(STORAGE.scholarNames)
       ]);
 
       const [
@@ -526,7 +551,8 @@ export default function App() {
         savedPdfMarks,
         savedLearningProgress,
         savedSittaData,
-        savedAdhkarReminders
+        savedAdhkarReminders,
+        savedScholarNames
       ] = results;
 
       if (savedSettings) {
@@ -547,6 +573,7 @@ export default function App() {
       if (savedLearningProgress) setLearningProgress(JSON.parse(savedLearningProgress));
       if (savedSittaData) setSittaData(JSON.parse(savedSittaData));
       if (savedAdhkarReminders) setAdhkarReminders(JSON.parse(savedAdhkarReminders));
+      if (savedScholarNames) setScholarNames(JSON.parse(savedScholarNames));
 
     } catch (error) {
       Alert.alert('خبرتیا', 'د معلوماتو په لوستلو کې ستونزه رامنځته شوه.');
@@ -694,10 +721,6 @@ export default function App() {
   }
 
   function goBack() {
-    if (screen === 'itemDetails' && selectedItem?.resourceType === 'quran') {
-      setScreen(quranSelectedSurah ? 'quranSurah' : 'quran');
-      return;
-    }
     if (screen === 'audioPlayer' || screen === 'pdfReader') {
       if (mediaReturnScreen === 'oldBook' && selectedBook) setSelectedItem(selectedBook);
       setScreen(mediaReturnScreen || 'oldBook');
@@ -721,6 +744,7 @@ export default function App() {
       adhkarHome: 'home',
       adhkarReminders: 'adhkarHome',
       adhkarFolder: 'adhkarHome',
+      quranSurah: 'quran',
       sittaBooks: 'sectionFolder',
       sittaKitabs: 'sittaBooks',
       sittaBabs: 'sittaKitabs',
@@ -732,8 +756,7 @@ export default function App() {
       search: 'home',
       favorites: 'home',
       quran: 'home',
-      quranSurah: 'quran',
-      quranEditor: quranSelectedSurah ? 'quranSurah' : 'quran',
+      quranEditor: 'quran',
       learningPath: 'home',
       audioPlayer: 'itemDetails',
       pdfReader: 'itemDetails',
@@ -1111,8 +1134,6 @@ export default function App() {
       folder: quranMode ? 'قرآن کریم' : selectedFolder,
       level: formLevel,
       surah: quranMode ? formSurah.trim() : '',
-      surahNumber: quranMode ? (Number(formSurah) || quranSelectedSurah?.number || null) : null,
-      surahName: quranMode ? (quranSelectedSurah?.name || '') : '',
       ayah: quranMode ? formAyah.trim() : '',
       pageMap: parsedPageMap,
       audioMap: parsedAudioMap,
@@ -1124,9 +1145,14 @@ export default function App() {
       newItem,
       ...globalItems
     ]);
+    if (newItem.scholar && !scholarNames.includes(newItem.scholar)) {
+      const updatedScholarNames = [...scholarNames, newItem.scholar];
+      setScholarNames(updatedScholarNames);
+      await saveData(STORAGE.scholarNames, updatedScholarNames);
+    }
 
     clearForm();
-    setScreen(savedAsQuran ? (quranSelectedSurah ? 'quranSurah' : 'quran') : 'sectionFolder');
+    setScreen(savedAsQuran ? 'quran' : 'sectionFolder');
   }
 
   async function deleteGlobalItem(id) {
@@ -1733,6 +1759,14 @@ export default function App() {
     }
   }
 
+  async function pickSchedulePDF() {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ type: 'application/pdf', copyToCacheDirectory: true, multiple: false });
+      if (!result.canceled && result.assets?.length) setSchedulePDF(await keepPickedFile(result.assets[0], 'schedule-pdf'));
+    } catch (error) { Alert.alert('ستونزه', 'د بیان PDF انتخاب نه شو.'); }
+  }
+
+
   function resetScheduleForm() {
     setScheduleTitle('');
     setScheduleKind('بیان');
@@ -1742,6 +1776,7 @@ export default function App() {
     setScheduleExtraTimes('');
     setScheduleText('');
     setScheduleAudio('');
+    setSchedulePDF('');
   }
 
   function isValidClock(value) {
@@ -1826,7 +1861,8 @@ export default function App() {
             title: `میراث اسلام – ${scheduleTitle.trim()}`,
             body: `${label}: ${scheduleKind} (${clock})`,
             sound: true,
-            data: { scheduleId, kind: scheduleKind, clock }
+            data: { scheduleId, kind: scheduleKind, clock },
+            ...(Platform.OS === 'android' ? { channelId: 'lesson-reminders' } : {})
           },
           trigger
         });
@@ -1847,6 +1883,7 @@ export default function App() {
         extraTimes: uniqueTimes.filter(time => time !== scheduleStartTime.trim() && time !== scheduleEndTime.trim()),
         text: scheduleText.trim(),
         audio: scheduleAudio || '',
+        pdf: schedulePDF || '',
         repeatDaily: !scheduleDate.trim(),
         notificationIds: scheduledIds,
         createdAt: new Date().toISOString()
@@ -1988,6 +2025,52 @@ export default function App() {
     return sittaData?.[selectedSittaBook.id]?.[selectedSittaKitab] || [];
   }
 
+  function getSittaKitabMedia() {
+    return sittaData?.[selectedSittaBook?.id]?.__kitabMedia?.[selectedSittaKitab] || {};
+  }
+
+  async function pickAndSaveSittaMedia(level, targetId = null, number = null, kind = 'audio') {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: kind === 'audio' ? ['audio/*'] : 'application/pdf',
+        copyToCacheDirectory: true,
+        multiple: false
+      });
+      if (result.canceled || !result.assets?.length) return;
+      const file = result.assets[0];
+      const uri = await keepPickedFile(file, `sitta-${kind}`);
+      const bookId = selectedSittaBook.id;
+      const bookRows = { ...(sittaData[bookId] || {}) };
+      if (level === 'kitab') {
+        const mediaRows = { ...(bookRows.__kitabMedia || {}) };
+        mediaRows[selectedSittaKitab] = { ...(mediaRows[selectedSittaKitab] || {}), [kind]: uri };
+        bookRows.__kitabMedia = mediaRows;
+      } else {
+        const kitabRows = (bookRows[selectedSittaKitab] || []).map(bab => {
+          if (bab.id !== targetId) return bab;
+          if (level === 'bab') return { ...bab, [kind]: uri };
+          const hadithRows = (bab.hadithNumbers || []).map(row => {
+            const oldNumber = typeof row === 'object' ? row.number : row;
+            return String(oldNumber) === String(number) ? { ...(typeof row === 'object' ? row : { number: oldNumber }), [kind]: uri } : row;
+          });
+          return { ...bab, hadithNumbers: hadithRows };
+        });
+        bookRows[selectedSittaKitab] = kitabRows;
+      }
+      await saveSittaData({ ...sittaData, [bookId]: bookRows });
+      if (level === 'bab' || level === 'hadith') {
+        const updatedBab = (bookRows[selectedSittaKitab] || []).find(row => row.id === targetId);
+        if (updatedBab?.id === selectedSittaBab?.id) setSelectedSittaBab(updatedBab);
+      }
+      Alert.alert('بریالی شو', kind === 'audio' ? 'آډیو ثبت شوه.' : 'PDF ثبت شو.');
+    } catch (error) { Alert.alert('ستونزه', 'فایل ثبت نه شو.'); }
+  }
+
+  function openSittaMedia(media, title, id) {
+    if (media?.audio) startAudio({ id: `sitta-${id}`, title, audio: media.audio, scholar: '', section: selectedSittaBook?.name || 'حدیث' }, 0);
+    if (media?.pdf) openPdf({ id: `sitta-${id}`, title, pdf: media.pdf }, 1);
+  }
+
   async function addSittaBab() {
     if (!sittaBabName.trim() || !selectedSittaBook || !selectedSittaKitab) {
       Alert.alert('خبرتیا', 'د باب نوم ولیکئ.');
@@ -1995,7 +2078,7 @@ export default function App() {
     }
     const bookRows = sittaData[selectedSittaBook.id] || {};
     const kitabRows = bookRows[selectedSittaKitab] || [];
-    const bab = { id: `bab-${Date.now()}`, name: sittaBabName.trim(), hadithNumbers: [] };
+    const bab = { id: `bab-${Date.now()}`, name: sittaBabName.trim(), hadithNumbers: [], audio: '', pdf: '' };
     await saveSittaData({ ...sittaData, [selectedSittaBook.id]: { ...bookRows, [selectedSittaKitab]: [...kitabRows, bab] } });
     setSittaBabName('');
   }
@@ -2010,13 +2093,19 @@ export default function App() {
       Alert.alert('ناسمه شمېره', 'یوازې د حدیث شمېره ولیکئ.');
       return;
     }
+    const audioSeconds = sittaHadithAudioTime.trim() ? parseMediaStartTime(sittaHadithAudioTime) : null;
+    const pdfPage = sittaHadithPdfPage.trim() ? Number(sittaHadithPdfPage) : null;
+    if (audioSeconds === null && sittaHadithAudioTime.trim()) { Alert.alert('ناسم وخت', 'د آډیو وخت د دقیقې:ثانیې په بڼه ولیکئ، لکه 12:35.'); return; }
+    if (sittaHadithPdfPage.trim() && (!Number.isInteger(pdfPage) || pdfPage < 1)) { Alert.alert('ناسم مخ', 'د PDF مخ مثبته شمېره ولیکئ.'); return; }
     const bookRows = sittaData[selectedSittaBook.id] || {};
     const kitabRows = bookRows[selectedSittaKitab] || [];
-    const updatedBabRows = kitabRows.map(bab => bab.id === selectedSittaBab.id ? { ...bab, hadithNumbers: [...(bab.hadithNumbers || []), number] } : bab);
+    const updatedBabRows = kitabRows.map(bab => bab.id === selectedSittaBab.id ? { ...bab, hadithNumbers: [...(bab.hadithNumbers || []), { number, audio: '', pdf: '', audioStartSeconds: audioSeconds, pdfPage }] } : bab);
     await saveSittaData({ ...sittaData, [selectedSittaBook.id]: { ...bookRows, [selectedSittaKitab]: updatedBabRows } });
     const updatedBab = updatedBabRows.find(bab => bab.id === selectedSittaBab.id);
     setSelectedSittaBab(updatedBab);
     setSittaHadithNumber('');
+    setSittaHadithAudioTime('');
+    setSittaHadithPdfPage('');
   }
 
   async function deleteSittaBab(babId) {
@@ -2135,6 +2224,14 @@ export default function App() {
   async function deleteAdhkarReminder(plan) {
     await Promise.all((plan.notificationIds || []).map(id => Notifications.cancelScheduledNotificationAsync(id).catch(() => null)));
     await saveAdhkarReminders(adhkarReminders.filter(row => row.id !== plan.id));
+  }
+
+  function openAdhkarResourceEditor() {
+    clearForm();
+    setQuranMode(false);
+    setSelectedSection('دعاوې، اذکار او عبادتي لارښود');
+    setFormResourceType('کتاب / بیان');
+    setScreen('lessonEditor');
   }
 
   async function addDhikr() {
@@ -2545,6 +2642,15 @@ export default function App() {
     return [...new Set([...COMMON_SECTION_FOLDERS, ...extras])];
   }
 
+  async function addScholarFolder() {
+    const name = newScholarName.trim();
+    if (!name) { Alert.alert('خبرتیا', 'د عالم نوم ولیکئ.'); return; }
+    const updated = [...new Set([...scholarNames, name])];
+    setScholarNames(updated);
+    await saveData(STORAGE.scholarNames, updated);
+    setNewScholarName('');
+  }
+
   function openSection(section) {
     const canonical = canonicalSection(section);
     setSelectedSection(canonical);
@@ -2575,38 +2681,21 @@ export default function App() {
   }
 
   function openQuranEditor(surah = quranSelectedSurah) {
-    clearForm();
-    setSelectedScholar('');
-    setQuranMode(true);
-    setFormResourceType('تفسیر');
-    setSelectedSection('قرآن کریم او علوم القرآن');
-    setSelectedFolder('قرآن کریم');
+    clearForm(); setSelectedScholar(''); setQuranMode(true); setFormResourceType('تفسیر');
+    setSelectedSection('قرآن کریم او علوم القرآن'); setSelectedFolder('قرآن کریم');
     if (surah) setFormSurah(String(surah.number));
     setScreen('quranEditor');
   }
 
-  function openQuranSurah(surah) {
-    setQuranSelectedSurah(surah);
-    setQuranSearch('');
-    setScreen('quranSurah');
-  }
+  function openQuranSurah(surah) { setQuranSelectedSurah(surah); setQuranSearch(''); setScreen('quranSurah'); }
 
   function getQuranSurahItems() {
     if (!quranSelectedSurah) return [];
-    const number = String(quranSelectedSurah.number);
-    const name = quranSelectedSurah.name.toLowerCase();
-    return globalItems
-      .filter(item => item.resourceType === 'quran' && (
-        String(item.surahNumber || '').trim() === number ||
-        String(item.surah || '').trim() === number ||
-        String(item.surah || '').trim().toLowerCase() === name ||
-        String(item.surahName || '').trim().toLowerCase() === name
-      ))
-      .sort((a, b) => {
-        const ayahA = Number(String(a.ayah || '').match(/\\d+/)?.[0] || 0);
-        const ayahB = Number(String(b.ayah || '').match(/\\d+/)?.[0] || 0);
-        return ayahA - ayahB;
-      });
+    const number = String(quranSelectedSurah.number); const name = quranSelectedSurah.name.toLowerCase();
+    return globalItems.filter(item => item.resourceType === 'quran' && (
+      String(item.surahNumber || '').trim() === number || String(item.surah || '').trim() === number ||
+      String(item.surah || '').trim().toLowerCase() === name || String(item.surahName || '').trim().toLowerCase() === name
+    )).sort((a,b) => Number(String(a.ayah || '').match(/\d+/)?.[0] || 0) - Number(String(b.ayah || '').match(/\d+/)?.[0] || 0));
   }
 
   function getQuranResults() {
@@ -2738,6 +2827,9 @@ export default function App() {
           multiline={multiline}
           textAlign="right"
           keyboardType={keyboardType}
+          showSoftInputOnFocus={true}
+          editable={true}
+          blurOnSubmit={false}
         />
       </View>
     );
@@ -2810,12 +2902,12 @@ export default function App() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
 
         {screen === 'home' && (
           <View style={[styles.homeScreen, { backgroundColor: homeDesign.pageBackground }]}>
-            <ScrollView style={styles.homeContent} contentContainerStyle={styles.homeScrollContent} showsVerticalScrollIndicator={false}>
+            <ScrollView style={styles.homeContent} contentContainerStyle={styles.homeScrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
               {/* د سرپاڼې ښکلی اسلامي سرلیک */}
               <View style={[styles.homeHeroHeader, { backgroundColor: homeDesign.headerBackground }]}>
                 <View style={styles.headerTopActions}>
@@ -2899,22 +2991,19 @@ export default function App() {
                 </TouchableOpacity>
               </View>
 
-              {/* علمي برخې؛ سرلیک لرې شوی، د برخو تڼۍ له پخواني سیستم سره تړلې دي */}
+              {/* اته عمومي علمي فولډرونه؛ پخوانۍ ۱۶ برخې دننه مدغم دي */}
               <View style={styles.homeCategoriesGrid}>
-                {SECTIONS.map((section, index) => {
-                  const icons = ['book-outline','library-outline','scale-outline','shield-checkmark-outline','git-branch-outline','heart-outline','earth-outline','people-outline','language-outline','leaf-outline','megaphone-outline','chatbubbles-outline','school-outline','hand-left-outline','home-outline','flask-outline'];
-                  return (
-                    <TouchableOpacity
-                      key={section}
-                      style={homeFolderCardStyle(`section_${index}`, styles.homeCategoryCard)}
-                      onPress={() => openSection(section)}
-                      activeOpacity={0.82}
-                    >
-                      <Ionicons name={icons[index]} color={getHomeFolderDesign(`section_${index}`).folderIconColor} size={getHomeFolderDesign(`section_${index}`).iconSize} />
-                      <Text style={homeFolderTitleStyle(`section_${index}`, styles.homeCategoryTitle)}>{t(section)}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
+                {HOME_SECTION_GROUPS.map(group => (
+                  <TouchableOpacity
+                    key={group.key}
+                    style={homeFolderCardStyle(`group_${group.key}`, styles.homeCategoryCard)}
+                    onPress={() => { setSelectedHomeGroup(group); setScreen('homeSectionGroup'); }}
+                    activeOpacity={0.82}
+                  >
+                    <Ionicons name={group.icon} color={getHomeFolderDesign(`group_${group.key}`).folderIconColor} size={getHomeFolderDesign(`group_${group.key}`).iconSize} />
+                    <Text style={homeFolderTitleStyle(`group_${group.key}`, styles.homeCategoryTitle)}>{group.title}</Text>
+                  </TouchableOpacity>
+                ))}
               </View>
 
               {/* د علماوو او مشایخو درسونه */}
@@ -3034,15 +3123,34 @@ export default function App() {
             36 - د علماوو لست
         ================================================== */}
 
+        {screen === 'homeSectionGroup' && selectedHomeGroup && (
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always">
+            <PageHeader title={selectedHomeGroup.title} subtitle="اړوندې علمي برخې" onBack={goBack} />
+            {selectedHomeGroup.sections.map(section => (
+              <TouchableOpacity key={section} style={styles.listCard} onPress={() => openSection(section)}>
+                <Text style={styles.listCardIcon}>۞</Text>
+                <Text style={[styles.listCardTitle, { color: settings.textColor }]}>{section}</Text>
+                <Text style={styles.lessonArrow}>‹</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
+
         {screen === 'scholars' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader
               title={t("د علماوو کتابتون")}
               subtitle={t("د علماوو علمي آثار او درسونه")}
               onBack={goBack}
             />
 
-            {[...new Set([...SCHOLARS, ...globalItems.map(item => item.scholar).filter(Boolean)])].map((scholar, index) => (
+            <View style={styles.formCard}>
+              <Text style={[styles.cardHeading, { color: settings.headingColor }]}>د اډمین له خوا د عالم فولډر جوړول</Text>
+              <Field label="د عالم نوم" value={newScholarName} onChangeText={setNewScholarName} placeholder="د عالم بشپړ نوم ولیکئ" />
+              <GoldButton title="＋ د عالم فولډر جوړ کړئ" onPress={addScholarFolder} />
+              <Text style={styles.smallMuted}>د نوي درس د اپلوډ پر مهال چې د عالم نوم ولیکل شي، هماغه نوم به دلته هم په اتومات ډول ښکاره شي.</Text>
+            </View>
+            {[...new Set([...scholarNames, ...globalItems.map(item => item.scholar).filter(Boolean)])].map((scholar, index) => (
               <TouchableOpacity
                 key={scholar}
                 style={styles.scholarCard}
@@ -3072,7 +3180,7 @@ export default function App() {
         ================================================== */}
 
         {screen === 'scholar' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader
               title={t("د عالم کتابتون")}
               subtitle={selectedScholar}
@@ -3116,7 +3224,7 @@ export default function App() {
         ================================================== */}
 
         {screen === 'oldCategory' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader
               title={selectedSection}
               subtitle={selectedScholar}
@@ -3181,7 +3289,7 @@ export default function App() {
         ================================================== */}
 
         {screen === 'oldBook' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader
               title={selectedItem?.title || 'کتاب'}
               subtitle={t("څپرکي او درسونه")}
@@ -3293,7 +3401,7 @@ export default function App() {
         ================================================== */}
 
         {screen === 'section' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader
               title={selectedSection}
               subtitle={t("د زده کړې برخې")}
@@ -3327,14 +3435,14 @@ export default function App() {
         ================================================== */}
 
         {screen === 'sectionFolder' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader
               title={selectedFolder}
               subtitle={selectedSection}
               onBack={goBack}
             />
 
-            {selectedFolder === 'صحاح سته' ? <GoldButton title="📚 د صحاح سته شپږ کتابونه پرانیزئ" secondary onPress={() => setScreen('sittaBooks')} /> : null}
+            {(selectedFolder === 'کتب تسعه' || selectedFolder === 'صحاح سته' || selectedFolder === 'مشکاة المصابيح') ? <GoldButton title={selectedFolder === 'مشکاة المصابيح' ? '📚 مشکاة المصابيح پرانیزئ' : '📚 د کتب تسعه کتابونه پرانیزئ'} secondary onPress={() => { setSittaCollection(selectedFolder === 'مشکاة المصابيح' ? 'mishkat' : 'kutubTisah'); setScreen('sittaBooks'); }} /> : null}
 
             <GoldButton
               title="＋ نوی درس اضافه کړئ"
@@ -3374,7 +3482,7 @@ export default function App() {
         ================================================== */}
 
         {screen === 'lessonEditor' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader
               title={t("نوی درس")}
               subtitle={t("د درس معلومات ثبت کړئ")}
@@ -3466,7 +3574,7 @@ export default function App() {
         ================================================== */}
 
         {screen === 'itemDetails' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader
               title={selectedItem?.title || 'درس'}
               subtitle={selectedItem?.scholar || ''}
@@ -3552,7 +3660,7 @@ export default function App() {
         ================================================== */}
 
         {screen === 'notes' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader
               title="زما نوټونه"
               subtitle="شخصي یادښتونه"
@@ -3620,7 +3728,7 @@ export default function App() {
             د آډیو پلیر سکرین
         ================================================== */}
         {screen === 'audioPlayer' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader title={t("د بیان اورېدل")} subtitle={audioItemRef.current?.scholar || 'آډیو پلیر'} onBack={goBack} />
             <View style={styles.audioPlayerCard}>
               <Text style={styles.audioPlayerTitle}>{audioItemRef.current?.title || selectedItem?.title || 'بیان'}</Text>
@@ -3720,7 +3828,7 @@ export default function App() {
 
         {/* د آډیو خوندي نښې - له PDF نښو جلا */}
         {screen === 'audioMarks' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader title={t("د آډیو نښې")} subtitle={t("خوندي شوي دقیق وختونه او شخصي یادښتونه")} onBack={goBack} />
             {audioMarks.map(mark => (
               <View key={mark.id} style={styles.bookmarkListCard}>
@@ -3739,7 +3847,7 @@ export default function App() {
 
         {/* د PDF خوندي نښې - له آډیو نښو جلا */}
         {screen === 'pdfMarks' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader title={t("د کتابونو نښې")} subtitle={t("خوندي شوي مخونه او شخصي یادښتونه")} onBack={goBack} />
             {pdfMarks.map(mark => (
               <View key={mark.id} style={styles.bookmarkListCard}>
@@ -3761,7 +3869,7 @@ export default function App() {
         ================================================== */}
 
         {screen === 'noteEditor' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader
               title={t("د نوټ لیکل")}
               subtitle={t("خپل معلومات خوندي کړئ")}
@@ -3801,7 +3909,7 @@ export default function App() {
         ================================================== */}
 
         {screen === 'reminders' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader
               title={t("خبرتیاوې")}
               subtitle="د بیانونو، اذکارو او دعاوو یادونې"
@@ -3840,7 +3948,7 @@ export default function App() {
 
         {/* د ذکر، دعا او بیان د تقسیم اوقات لست */}
         {screen === 'schedulePlanner' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader title="د تقسیم اوقات سیستم" subtitle="د بیان، ذکر او دعا ټاکلي وختونه" onBack={goBack} />
             <GoldButton title="＋ نوی تقسیم اوقات جوړ کړه" onPress={() => { resetScheduleForm(); setScreen('scheduleEditor'); }} />
             {reminders.filter(item => item.type === 'schedulePlan').map(item => (
@@ -3851,6 +3959,7 @@ export default function App() {
                 <Text style={styles.smallMuted}>نور وختونه: {(item.extraTimes || []).join('، ') || 'نه دي ټاکل شوي'}</Text>
                 <Text style={styles.smallMuted}>{item.repeatDaily ? 'هره ورځ تکرارېږي' : 'یوه ټاکلې نېټه'}</Text>
                 {item.audio ? <GoldButton title="▶ ثبت شوی بیان واوره" onPress={() => startAudio({ ...item, section: item.kind, scholar: '' }, 0)} /> : <Text style={styles.smallMuted}>آډیو نه ده ثبت شوې</Text>}
+                {item.pdf ? <GoldButton title="▤ PDF ولوله" secondary onPress={() => openPdf({ ...item, title: item.title, section: item.kind }, 1)} /> : null}
                 <GoldButton title="دا تقسیم اوقات حذف کړه" secondary onPress={() => deleteSchedulePlan(item.id)} />
               </View>
             ))}
@@ -3861,7 +3970,7 @@ export default function App() {
 
         {/* د نوي تقسیم اوقات فورم */}
         {screen === 'scheduleEditor' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader title="نوی تقسیم اوقات" subtitle="د ذکر، دعا یا بیان لپاره وختونه ثبت کړئ" onBack={goBack} />
             <Field label="د بیان، ذکر یا دعا نوم" value={scheduleTitle} onChangeText={setScheduleTitle} placeholder="د بېلګې په توګه: د سهار ذکر" />
             <Text style={[styles.fieldLabel, { color: settings.textColor }]}>د موادو ډول</Text>
@@ -3878,13 +3987,14 @@ export default function App() {
             <Field label="د ورځې نور وختونه (په کامه سره جلا)" value={scheduleExtraTimes} onChangeText={setScheduleExtraTimes} placeholder="10:00، 14:00، 20:30" />
             <Field label="د ذکر یا دعا متن (اختیاري)" value={scheduleText} onChangeText={setScheduleText} placeholder="متن دلته ولیکئ" multiline />
             <GoldButton title={scheduleAudio ? '✓ آډیو ټاکل شوې' : '♫ آډیو فایل اختیاري وټاکئ'} secondary onPress={pickScheduleAudio} />
+            <GoldButton title={schedulePDF ? '✓ PDF ټاکل شوی' : '▤ د بیان یا کتاب PDF وټاکئ'} secondary onPress={pickSchedulePDF} />
             <Text style={styles.mutedText}>که نېټه تشه پرېږدئ، ټول ټاکلي وختونه به هره ورځ تکرارېږي. که نېټه ولیکئ، خبرتیاوې یوازې په هماغه نېټه کېږي. د پیل او ختم خبرتیاوې جلا ثبتېږي.</Text>
             <GoldButton title="تقسیم اوقات خوندي کړه" onPress={saveSchedulePlan} />
           </ScrollView>
         )}
 
         {screen === 'reminderEditor' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader
               title={t("نوې خبرتیا")}
               subtitle={t("د یادونې وخت وټاکئ")}
@@ -3924,38 +4034,66 @@ export default function App() {
         ================================================== */}
 
         {screen === 'sittaBooks' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
-            <PageHeader title="صحاح سته" subtitle="د حدیثو شپږ مشهور کتابونه" onBack={goBack} />
-            {SIHAH_SITTA.map(book => <TouchableOpacity key={book.id} style={styles.listCard} onPress={() => { setSelectedSittaBook(book); setScreen('sittaKitabs'); }}><View style={styles.flexText}><Text style={[styles.listCardTitle, { color: settings.textColor }]}>{book.name}</Text><Text style={styles.smallMuted}>{book.author} · {(SIHAH_SITTA_KITAB_TITLES[book.id] || []).length} کتابونه</Text></View><Text style={styles.lessonArrow}>‹</Text></TouchableOpacity>)}
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
+            <PageHeader title={sittaCollection === 'mishkat' ? 'مشكاة المصابيح' : 'کتب تسعه'} subtitle={sittaCollection === 'mishkat' ? 'د مشکاة المصابيح کتابونه' : 'نه مشهور حدیثي ټولګې'} onBack={goBack} />
+            {(sittaCollection === 'mishkat' ? [MISHKAT_BOOK] : SIHAH_SITTA).map(book => <TouchableOpacity key={book.id} style={styles.listCard} onPress={() => { setSelectedSittaBook(book); setScreen('sittaKitabs'); }}><View style={styles.flexText}><Text style={[styles.listCardTitle, { color: settings.textColor }]}>{book.name}</Text><Text style={styles.smallMuted}>{book.author} · {(sittaCollection === 'mishkat' ? MISHKAT_KITAB_TITLES : (SIHAH_SITTA_KITAB_TITLES[book.id] || [])).length} کتابونه</Text></View><Text style={styles.lessonArrow}>‹</Text></TouchableOpacity>)}
           </ScrollView>
         )}
 
         {screen === 'sittaKitabs' && selectedSittaBook && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader title={selectedSittaBook.name} subtitle="عربي Kitab فولډرونه" onBack={goBack} />
-            {(SIHAH_SITTA_KITAB_TITLES[selectedSittaBook.id] || []).map((title, index) => <TouchableOpacity key={`${selectedSittaBook.id}-${index}`} style={styles.listCard} onPress={() => { setSelectedSittaKitab(title); setScreen('sittaBabs'); }}><View style={styles.flexText}><Text style={[styles.listCardTitle, { color: settings.textColor, textAlign: 'right' }]}>{title}</Text><Text style={styles.smallMuted}>کتاب {index + 1}</Text></View><Text style={styles.lessonArrow}>‹</Text></TouchableOpacity>)}
+            {(selectedSittaBook.id === 'mishkat' ? MISHKAT_KITAB_TITLES : (SIHAH_SITTA_KITAB_TITLES[selectedSittaBook.id] || [])).map((title, index) => <TouchableOpacity key={`${selectedSittaBook.id}-${index}`} style={styles.listCard} onPress={() => { setSelectedSittaKitab(title); setScreen('sittaBabs'); }}><View style={styles.flexText}><Text style={[styles.listCardTitle, { color: settings.textColor, textAlign: 'right' }]}>{title}</Text><Text style={styles.smallMuted}>کتاب {index + 1}</Text></View><Text style={styles.lessonArrow}>‹</Text></TouchableOpacity>)}
           </ScrollView>
         )}
 
         {screen === 'sittaBabs' && selectedSittaBook && selectedSittaKitab && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader title={selectedSittaKitab} subtitle={selectedSittaBook.name} onBack={goBack} />
+            <View style={styles.formCard}>
+              <Text style={[styles.cardHeading, { color: settings.headingColor }]}>د ټول کتاب عمومي آډیو او PDF</Text>
+              <GoldButton title="♫ د کتاب عمومي آډیو ثبت کړئ" secondary onPress={() => pickAndSaveSittaMedia('kitab', null, null, 'audio')} />
+              <GoldButton title="▤ د کتاب عمومي PDF ثبت کړئ" secondary onPress={() => pickAndSaveSittaMedia('kitab', null, null, 'pdf')} />
+              {getSittaKitabMedia().audio ? <GoldButton title="▶ عمومي آډیو واوره" onPress={() => openSittaMedia({ audio: getSittaKitabMedia().audio }, selectedSittaKitab, `kitab-${selectedSittaKitab}`)} /> : null}
+              {getSittaKitabMedia().pdf ? <GoldButton title="▤ عمومي PDF ولوله" secondary onPress={() => openSittaMedia({ pdf: getSittaKitabMedia().pdf }, selectedSittaKitab, `kitab-${selectedSittaKitab}`)} /> : null}
+            </View>
             <View style={styles.formCard}><Text style={[styles.cardHeading, { color: settings.headingColor }]}>خپل باب فولډر جوړ کړئ</Text><Field label="د باب نوم" value={sittaBabName} onChangeText={setSittaBabName} placeholder="د باب نوم ولیکئ" /><GoldButton title="＋ باب اضافه کړئ" onPress={addSittaBab} /></View>
-            {(sittaData?.[selectedSittaBook.id]?.[selectedSittaKitab] || []).map(bab => <TouchableOpacity key={bab.id} style={styles.listCard} onPress={() => { setSelectedSittaBab(bab); setSittaHadithNumber(''); setScreen('sittaBabDetails'); }}><View style={styles.flexText}><Text style={[styles.listCardTitle, { color: settings.textColor }]}>{bab.name}</Text><Text style={styles.smallMuted}>د حدیثونو شمېرې: {(bab.hadithNumbers || []).length}</Text></View><Text style={styles.lessonArrow}>‹</Text></TouchableOpacity>)}
+            {(sittaData?.[selectedSittaBook.id]?.[selectedSittaKitab] || []).map(bab => <TouchableOpacity key={bab.id} style={styles.listCard} onPress={() => { setSelectedSittaBab(bab); setSittaHadithNumber(''); setSittaHadithAudioTime(''); setSittaHadithPdfPage(''); setScreen('sittaBabDetails'); }}><View style={styles.flexText}><Text style={[styles.listCardTitle, { color: settings.textColor }]}>{bab.name}</Text><Text style={styles.smallMuted}>د حدیثونو شمېرې: {(bab.hadithNumbers || []).length}</Text></View><Text style={styles.lessonArrow}>‹</Text></TouchableOpacity>)}
           </ScrollView>
         )}
 
         {screen === 'sittaBabDetails' && selectedSittaBab && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader title={selectedSittaBab.name} subtitle={`${selectedSittaKitab} · ${selectedSittaBook?.name || ''}`} onBack={goBack} />
-            <View style={styles.formCard}><Text style={[styles.cardHeading, { color: settings.headingColor }]}>د حدیث شمېره ثبت کړئ</Text><Field label="د حدیث شمېره" value={sittaHadithNumber} onChangeText={setSittaHadithNumber} placeholder="یوازې شمېره" keyboardType="number-pad" /><GoldButton title="＋ شمېره اضافه کړئ" onPress={addSittaHadithNumber} /></View>
-            {(selectedSittaBab.hadithNumbers || []).map((number, index) => <View key={`${selectedSittaBab.id}-${index}`} style={styles.listCard}><Text style={[styles.listCardTitle, { color: settings.textColor }]}>حدیث شمېره: {number}</Text></View>)}
+            <View style={styles.formCard}>
+              <Text style={[styles.cardHeading, { color: settings.headingColor }]}>د دې باب عمومي آډیو او PDF</Text>
+              <GoldButton title="♫ د باب آډیو ثبت کړئ" secondary onPress={() => pickAndSaveSittaMedia('bab', selectedSittaBab.id, null, 'audio')} />
+              <GoldButton title="▤ د باب PDF ثبت کړئ" secondary onPress={() => pickAndSaveSittaMedia('bab', selectedSittaBab.id, null, 'pdf')} />
+              {selectedSittaBab.audio ? <GoldButton title="▶ د باب آډیو واوره" onPress={() => openSittaMedia({ audio: selectedSittaBab.audio }, selectedSittaBab.name, `bab-${selectedSittaBab.id}`)} /> : null}
+              {selectedSittaBab.pdf ? <GoldButton title="▤ د باب PDF ولوله" secondary onPress={() => openSittaMedia({ pdf: selectedSittaBab.pdf }, selectedSittaBab.name, `bab-${selectedSittaBab.id}`)} /> : null}
+            </View>
+            <View style={styles.formCard}><Text style={[styles.cardHeading, { color: settings.headingColor }]}>د حدیث شمېره ثبت کړئ</Text><Field label="د حدیث شمېره" value={sittaHadithNumber} onChangeText={setSittaHadithNumber} placeholder="یوازې شمېره" keyboardType="number-pad" /><Field label="په عمومي آډیو کې د حدیث د پیل وخت (اختیاري mm:ss)" value={sittaHadithAudioTime} onChangeText={setSittaHadithAudioTime} placeholder="12:35" /><Field label="په عمومي PDF کې د حدیث مخ (اختیاري)" value={sittaHadithPdfPage} onChangeText={setSittaHadithPdfPage} placeholder="25" keyboardType="number-pad" /><GoldButton title="＋ شمېره اضافه کړئ" onPress={addSittaHadithNumber} /></View>
+            {(selectedSittaBab.hadithNumbers || []).map((entry, index) => {
+              const number = typeof entry === 'object' ? entry.number : entry;
+              const media = typeof entry === 'object' ? entry : {};
+              return (
+                <View key={`${selectedSittaBab.id}-${index}`} style={[styles.formCard, { gap: 8 }]}>
+                  <Text style={[styles.listCardTitle, { color: settings.textColor }]}>حدیث شمېره: {number}</Text>
+                  <GoldButton title="♫ د همدې حدیث آډیو کلیپ ثبت کړئ" secondary onPress={() => pickAndSaveSittaMedia('hadith', selectedSittaBab.id, number, 'audio')} />
+                  <GoldButton title="▤ د همدې حدیث PDF ثبت کړئ" secondary onPress={() => pickAndSaveSittaMedia('hadith', selectedSittaBab.id, number, 'pdf')} />
+                  {media.audio ? <GoldButton title="▶ د حدیث کلیپ واوره" onPress={() => openSittaMedia({ audio: media.audio }, `حدیث ${number}`, `hadith-${selectedSittaBab.id}-${number}`)} /> : null}
+                  {media.pdf ? <GoldButton title="▤ د حدیث PDF ولوله" secondary onPress={() => openSittaMedia({ pdf: media.pdf }, `حدیث ${number}`, `hadith-${selectedSittaBab.id}-${number}`)} /> : null}
+                  {(selectedSittaBab.audio || getSittaKitabMedia().audio) && Number.isFinite(media.audioStartSeconds) ? <GoldButton title="▶ له عمومي آډیو څخه د دې حدیث ځای واوره" onPress={() => startAudio({ id: `sitta-general-audio-${selectedSittaBab.id}`, title: `${selectedSittaKitab} – حدیث ${number}`, audio: selectedSittaBab.audio || getSittaKitabMedia().audio, scholar: '', section: selectedSittaBook.name }, media.audioStartSeconds * 1000)} /> : null}
+                  {(selectedSittaBab.pdf || getSittaKitabMedia().pdf) && media.pdfPage ? <GoldButton title="▤ په عمومي PDF کې د حدیث مخ پرانیزه" secondary onPress={() => openPdf({ id: `sitta-general-pdf-${selectedSittaBab.id}`, title: `${selectedSittaKitab} – حدیث ${number}`, pdf: selectedSittaBab.pdf || getSittaKitabMedia().pdf }, media.pdfPage)} /> : null}
+                </View>
+              );
+            })}
             <GoldButton title="باب حذف کړئ" secondary onPress={() => deleteSittaBab(selectedSittaBab.id)} />
           </ScrollView>
         )}
 
         {screen === 'adhkarReminders' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader title="د اذکارو خبرتیاوې" subtitle="سهار، ماښام او نور اذکار" onBack={goBack} />
             <View style={styles.formCard}>
               <Text style={[styles.cardHeading, { color: settings.headingColor }]}>نوې یادونه جوړه کړئ</Text>
@@ -3978,7 +4116,7 @@ export default function App() {
         )}
 
         {screen === 'adhkarHome' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader
               title="ورځني اذکار"
               subtitle="د سهار او ماښام اذکار"
@@ -4013,7 +4151,7 @@ export default function App() {
         ================================================== */}
 
         {screen === 'adhkarFolder' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader
               title={selectedFolder}
               subtitle={t("ذکرونه")}
@@ -4027,6 +4165,17 @@ export default function App() {
                 setScreen('dhikrEditor');
               }}
             />
+            <GoldButton title="＋ د دې برخې کتاب، بیان، آډیو یا PDF اپلوډ کړئ" secondary onPress={openAdhkarResourceEditor} />
+
+            {globalItems.filter(item => item.section === 'دعاوې، اذکار او عبادتي لارښود' && item.folder === selectedFolder).map(item => (
+              <TouchableOpacity key={`resource-${item.id}`} style={styles.lessonCard} onPress={() => openItem(item)}>
+                <View style={styles.flexText}>
+                  <Text style={styles.lessonTitle}>{item.title}</Text>
+                  <Text style={styles.smallMuted}>{item.audio ? 'آډیو' : ''}{item.audio && item.pdf ? ' · ' : ''}{item.pdf ? 'PDF' : ''}{item.video ? ' · ویډیو' : ''}</Text>
+                </View>
+                <Text style={styles.lessonArrow}>‹</Text>
+              </TouchableOpacity>
+            ))}
 
             {adhkar
               .filter(item => item.category === selectedFolder)
@@ -4054,7 +4203,7 @@ export default function App() {
         ================================================== */}
 
         {screen === 'dhikrEditor' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader
               title={t("نوی ذکر")}
               subtitle={selectedFolder}
@@ -4111,7 +4260,7 @@ export default function App() {
         ================================================== */}
 
         {screen === 'dhikrDetails' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader
               title={selectedDhikr?.title || 'ذکر'}
               subtitle="د ذکر متن"
@@ -4160,7 +4309,7 @@ export default function App() {
         ================================================== */}
 
         {screen === 'prayer' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader
               title={t("د لمانځه وختونه")}
               subtitle={t("موقعیت او د محاسبې طریقه")}
@@ -4240,7 +4389,7 @@ export default function App() {
         ================================================== */}
 
         {screen === 'settings' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader
               title={t("تنظیمات")}
               subtitle={t("د میراث اسلام شخصي تنظیمات")}
@@ -4365,7 +4514,7 @@ export default function App() {
         )}
 
         {screen === 'homeDesign' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader title={t("د کورپاڼې ډیزاین")} subtitle={t("ټول رنګونه او فولډرونه په خپل اختیار برابر کړئ")} onBack={() => setScreen('settings')} />
 
             <View style={styles.formCard}>
@@ -4567,55 +4716,33 @@ export default function App() {
           </ScrollView>
         )}
 
-        {/* قرآن کریم: لومړی سورت، بیا د هماغه سورت آیتونه او درسونه */}
+        {/* قرآن کریم: پخوانی ۱۱۴ سورتونو سیستم او د آیتونو شمېر */}
         {screen === 'quran' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
-            <PageHeader title="قرآن کریم او علوم القرآن" subtitle="لومړی سورت وټاکئ، بیا د هغه سورت آیتونو ته درسونه ثبت کړئ" onBack={goBack} />
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
+            <PageHeader title="قرآن کریم" subtitle="۱۱۴ سورتونه او د هر سورت د آیتونو شمېر" onBack={goBack} />
             <Field label="د سورت نوم یا شمېره ولټوئ" value={quranSearch} onChangeText={setQuranSearch} placeholder="لکه: البقرة یا 2" />
-            <GoldButton title="＋ د قرآن نوی مواد ثبت کړئ (عمومي)" onPress={() => { setQuranSelectedSurah(null); openQuranEditor(null); }} />
-            {QURAN_SURAHS.filter(surah => !quranSearch.trim() || surah.name.includes(quranSearch.trim()) || String(surah.number).includes(quranSearch.trim())).map(surah => {
-              const count = globalItems.filter(item => item.resourceType === 'quran' && (String(item.surahNumber || item.surah || '').trim() === String(surah.number) || String(item.surahName || '').trim() === surah.name)).length;
-              return (
-                <TouchableOpacity key={surah.number} style={styles.lessonCard} onPress={() => openQuranSurah(surah)} activeOpacity={0.8}>
-                  <View style={styles.flexText}>
-                    <Text style={styles.lessonTitle}>{surah.number}. سورة {surah.name}</Text>
-                    <Text style={styles.smallMuted}>{count} ثبت شوي درسونه او مواد · د آیتونو ترتیب</Text>
-                  </View>
-                  <Text style={styles.lessonArrow}>‹</Text>
-                </TouchableOpacity>
-              );
+            <GoldButton title="＋ د قرآن عمومي مواد ثبت کړئ" onPress={() => { setQuranSelectedSurah(null); openQuranEditor(null); }} />
+            {QURAN_SURAHS.filter(s => !quranSearch.trim() || s.name.includes(quranSearch.trim()) || String(s.number).includes(quranSearch.trim())).map(s => {
+              const saved = globalItems.filter(item => item.resourceType === 'quran' && (String(item.surahNumber || item.surah || '').trim() === String(s.number) || String(item.surahName || '').trim() === s.name)).length;
+              return <TouchableOpacity key={s.number} style={styles.lessonCard} onPress={() => openQuranSurah(s)}><View style={styles.flexText}><Text style={styles.lessonTitle}>{s.number}. سورة {s.name}</Text><Text style={styles.smallMuted}>{s.ayahCount} آیتونه · {saved} ثبت شوي مواد</Text></View><Text style={styles.lessonArrow}>‹</Text></TouchableOpacity>;
             })}
           </ScrollView>
         )}
-
         {screen === 'quranSurah' && quranSelectedSurah && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
-            <PageHeader title={`سورة ${quranSelectedSurah.name}`} subtitle={`سورت نمبر ${quranSelectedSurah.number} · د آیتونو او درسونو جلا ترتیب`} onBack={goBack} />
-            <GoldButton title="＋ په همدې سورت کې نوی درس / تفسیر اضافه کړئ" onPress={openQuranEditor} />
-            <Text style={styles.smallMuted}>هر مواد د آیت شمېرې یا د آیتونو د لړۍ له مخې ثبت کړئ؛ دلته به په اتومات ډول د آیتونو له مخې منظم ښکاره شي.</Text>
-            {getQuranSurahItems().map((item, index) => (
-              <TouchableOpacity key={item.id} style={styles.lessonCard} onPress={() => {
-                setQuranTargetSurah(String(quranSelectedSurah.number));
-                setQuranTargetAyah(item.ayah || '');
-                openItem(item);
-              }} activeOpacity={0.8}>
-                <View style={styles.flexText}>
-                  <Text style={styles.lessonTitle}>{`آیت ${item.ayah || 'نه دی ټاکل شوی'} · ${item.title}`}</Text>
-                  <Text style={styles.smallMuted}>{item.resourceCategory || 'درس'} · {item.scholar || 'عالم نه دی ټاکل شوی'}</Text>
-                  <Text style={styles.smallMuted}>{item.audio ? 'آډیو شته' : 'آډیو نشته'} · {item.pdf ? 'PDF شته' : 'PDF نشته'} · {item.text ? 'متن شته' : 'متن نشته'}</Text>
-                </View>
-                <Text style={styles.lessonArrow}>‹</Text>
-              </TouchableOpacity>
-            ))}
-            {getQuranSurahItems().length === 0 && <Text style={styles.emptyText}>په دې سورت کې تر اوسه درس نه دی ثبت شوی. د پورته تڼۍ له لارې لومړی درس اضافه کړئ.</Text>}
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
+            <PageHeader title={`سورة ${quranSelectedSurah.name}`} subtitle={`سورت ${quranSelectedSurah.number} · ټول آیتونه: ${quranSelectedSurah.ayahCount}`} onBack={goBack} />
+            <GoldButton title="＋ په همدې سورت کې نوی درس / تفسیر اضافه کړئ" onPress={() => openQuranEditor(quranSelectedSurah)} />
+            <Text style={styles.smallMuted}>د دې سورت ټول آیتونه: {quranSelectedSurah.ayahCount}. ثبت شوي مواد د آیت د شمېر له مخې منظم دي.</Text>
+            {getQuranSurahItems().map(item => <TouchableOpacity key={item.id} style={styles.lessonCard} onPress={() => { setQuranTargetSurah(String(quranSelectedSurah.number)); setQuranTargetAyah(item.ayah || ''); openItem(item); }}><View style={styles.flexText}><Text style={styles.lessonTitle}>{`آیت ${item.ayah || '—'} · ${item.title}`}</Text><Text style={styles.smallMuted}>{item.resourceCategory || 'درس'} · {item.scholar || 'عالم نه دی ټاکل شوی'}</Text><Text style={styles.smallMuted}>{item.audio ? 'آډیو شته' : 'آډیو نشته'} · {item.pdf ? 'PDF شته' : 'PDF نشته'}</Text></View><Text style={styles.lessonArrow}>‹</Text></TouchableOpacity>)}
+            {getQuranSurahItems().length === 0 && <Text style={styles.emptyText}>په دې سورت کې تر اوسه مواد نه دي ثبت شوي.</Text>}
           </ScrollView>
         )}
 
         {screen === 'quranEditor' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader title="د قرآن مواد ثبتول" subtitle="ژباړه، تفسیر یا تلاوت" onBack={goBack} />
             <Field label="د موادو نوم" value={formTitle} onChangeText={setFormTitle} placeholder="لکه: د آیت پښتو ژباړه" />
-            <Field label={quranSelectedSurah ? `ټاکل شوی سورت: ${quranSelectedSurah.name} (${quranSelectedSurah.number})` : "سورت شمېره یا نوم"} value={formSurah} onChangeText={setFormSurah} placeholder="لکه: 2 یا البقرة" />
+            <Field label={quranSelectedSurah ? `ټاکل شوی سورت: ${quranSelectedSurah.name} (${quranSelectedSurah.number})` : "سورت شمېره یا نوم"} value={formSurah} onChangeText={setFormSurah} placeholder="لکه: 2 یا البقره" />
             <Field label="آیت شمېره یا د آیتونو لړۍ" value={formAyah} onChangeText={setFormAyah} placeholder="لکه: 1-286" />
             <View style={styles.formCard}>
               <Text style={[styles.cardHeading, { color: settings.headingColor }]}>د PDF د آیتونو او مخونو نقشه (اختیاري)</Text>
@@ -4659,7 +4786,7 @@ export default function App() {
 
         {/* د زده کړې مسیر */}
         {screen === 'learningPath' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader title="د زده کړې مسیر" subtitle="له بنسټیزې زده کړې تر تخصص پورې منظم پرمختګ" onBack={goBack} />
             {['ابتدایي', 'منځنۍ', 'تخصصي'].map((level, index) => {
               const levelItems = globalItems.filter(item => (item.level || 'ابتدایي') === level);
@@ -4693,7 +4820,7 @@ export default function App() {
         ================================================== */}
 
         {screen === 'search' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader
               title={t("لټون")}
               subtitle={t("په درسونو، کتابونو، نوټونو او اذکارو کې پلټنه")}
@@ -4739,7 +4866,7 @@ export default function App() {
         ================================================== */}
 
         {screen === 'favorites' && (
-          <ScrollView contentContainerStyle={styles.pageContent}>
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader
               title={t("خوښ شوي درسونه")}
               subtitle={t("ستاسو غوره درسونه")}
