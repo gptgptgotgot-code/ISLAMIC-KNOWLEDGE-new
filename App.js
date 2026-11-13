@@ -118,40 +118,94 @@ const SECTIONS = [
   'اسلام او معاصر علوم'
 ];
 
-// د هر علم ګډې فرعي برخې؛ فولډرونه یوازې د اړتیا پر مهال په UI کې ښکاري.
-const COMMON_SECTION_FOLDERS = [
-  'کتابونه او متون',
-  'درسونه او بیانونه',
-  'زده کړه او نصاب',
-  'څېړنې او مقالې',
-  'پوښتنې او ځوابونه',
-  'سرچینې او مراجع'
+// د هرې علمي برخې ځانګړي فرعي فولډرونه. اته عمومي فولډرونه په HOME_SECTION_GROUPS کې پر خپل ځای پاتې دي.
+// هغه فولډرونه چې children لري، لومړی د منځنۍ کچې په توګه ښکاري؛ بیا یې فرعي فولډرونه پرانیستل کېږي.
+const SECTION_FOLDER_TREE = {
+  'قرآن کریم او علوم القرآن': [
+    { name: 'قرآن کریم' },
+    { name: 'تلاوت او حفظ' },
+    { name: 'تجوید او قرائتونه' },
+    { name: 'تفسیر' },
+    { name: 'ژباړه او ترجمه' },
+    { name: 'علوم القرآن' },
+    { name: 'نور پخواني مواد' }
+  ],
+  'حدیث او علوم الحدیث': [
+    { name: 'کتب الحدیث', children: ['کتب تسعه', 'مشکاة المصابيح', 'نور حدیثي کتابونه'] },
+    { name: 'علوم الحدیث', children: ['مصطلح الحدیث', 'علم الرجال', 'جرح او تعدیل', 'تخریج الحدیث', 'علل الحدیث', 'مختلف الحدیث', 'غریب الحدیث', 'شرح الحدیث'] },
+    { name: 'نور پخواني مواد' }
+  ],
+  'فقه او فروع': [
+    { name: 'عبادات' }, { name: 'معاملات' }, { name: 'نکاح او کورنۍ' }, { name: 'طلاق' }, { name: 'میراث' },
+    { name: 'مذاهب فقهي', children: ['حنفي', 'مالکي', 'شافعي', 'حنبلي'] },
+    { name: 'فقه مقارن او دلایل' }, { name: 'نور پخواني مواد' }
+  ],
+  'عقیده او توحید': [
+    { name: 'توحید' }, { name: 'ایمان' }, { name: 'اسماء او صفات' }, { name: 'فرقې او مذاهب' }, { name: 'ردود او مناقشې' }, { name: 'نور پخواني مواد' }
+  ],
+  'اصول الفقه او قواعد': [
+    { name: 'اصول الفقه' }, { name: 'قواعد فقهیه' }, { name: 'مقاصد الشریعة' }, { name: 'دلیل او استنباط' }, { name: 'نور پخواني مواد' }
+  ],
+  'سیرت او شمائل نبوي ﷺ': [
+    { name: 'مکي ژوند' }, { name: 'مدني ژوند' }, { name: 'غزوات او سریې' }, { name: 'شمائل او خصائص' }, { name: 'نور پخواني مواد' }
+  ],
+  'اسلامي تاریخ او تمدن': [
+    { name: 'د نبوي دورې تاریخ' }, { name: 'خلافت راشده' }, { name: 'اسلامي دولتونه' }, { name: 'تمدن او کلتور' }, { name: 'نور پخواني مواد' }
+  ],
+  'د صحابه‌وو او علماوو ژوندلیکونه': [
+    { name: 'صحابه کرام' }, { name: 'تابعین' }, { name: 'محدثین' }, { name: 'فقهاء' }, { name: 'معاصر علماء' }, { name: 'نور پخواني مواد' }
+  ],
+  'عربي ژبه او ادبیات': [
+    { name: 'نحو' }, { name: 'صرف' }, { name: 'بلاغت' }, { name: 'لغت' }, { name: 'ادب او انشاء' }, { name: 'نور پخواني مواد' }
+  ],
+  'اخلاق، تزکیه او سلوک': [
+    { name: 'اخلاق' }, { name: 'تزکیه نفس' }, { name: 'رقائق' }, { name: 'آداب' }, { name: 'نور پخواني مواد' }
+  ],
+  'دعوت، تبلیغ او خطابت': [
+    { name: 'دعوت اصول' }, { name: 'خطابت' }, { name: 'مناظره' }, { name: 'دعوتي تجربې' }, { name: 'نور پخواني مواد' }
+  ],
+  'فتاوی او معاصرې مسئلې': [
+    { name: 'عبادات' }, { name: 'اقتصادي مسئلې' }, { name: 'طبي مسئلې' }, { name: 'ټولنیزې مسئلې' }, { name: 'معاصرې فتاوی' }, { name: 'نور پخواني مواد' }
+  ],
+  'اسلامي زده کړې او درسي نصاب': [
+    { name: 'ابتدایي نصاب' }, { name: 'منځنی نصاب' }, { name: 'عالي نصاب' }, { name: 'ازموینې او تمرینونه' }, { name: 'نور پخواني مواد' }
+  ],
+  'دعاوې، اذکار او عبادتي لارښود': [
+    { name: 'د سهار او ماښام اذکار' }, { name: 'د لمانځه لارښود' }, { name: 'حج او عمره' }, { name: 'روژه' }, { name: 'دعاوې' }, { name: 'نور پخواني مواد' }
+  ],
+  'اسلام، کورنۍ او ټولنه': [
+    { name: 'حقوق الزوجین' }, { name: 'د اولاد روزنه' }, { name: 'کورنۍ' }, { name: 'ټولنیز اخلاق' }, { name: 'نور پخواني مواد' }
+  ],
+  'اسلام او معاصر علوم': [
+    { name: 'اقتصاد' }, { name: 'ساینس' }, { name: 'ټکنالوژي' }, { name: 'معاصر فکري بحثونه' }, { name: 'نور پخواني مواد' }
+  ]
+};
+
+// د پخوانیو ګډو فولډرونو مواد په «نور پخواني مواد» کې لوستل کېږي؛ هېڅ زوړ ثبت نه حذفېږي.
+const LEGACY_COMMON_FOLDERS = [
+  'کتابونه او متون', 'اصلي کتابونه', 'شروح او حواشي', 'PDF کتابونه',
+  'درسونه او بیانونه', 'غږیز درسونه', 'ویډیو درسونه',
+  'زده کړه او نصاب', 'ابتدایي', 'منځنۍ', 'متوسط', 'تخصصي', 'ازموینې',
+  'څېړنې او مقالې', 'پوښتنې او ځوابونه', 'سرچینې او مراجع'
 ];
 
-// زاړه فولډرونه د نوې ساده بڼې تر شا ساتل کېږي؛ هېڅ پخوانی ثبت شوی مواد نه حذفېږي.
-const FOLDER_ALIASES = {
-  'کتابونه او متون': ['اصلي کتابونه', 'شروح او حواشي', 'PDF کتابونه'],
-  'درسونه او بیانونه': ['غږیز درسونه', 'ویډیو درسونه'],
-  'زده کړه او نصاب': ['ابتدایي', 'منځنۍ', 'متوسط', 'تخصصي', 'ازموینې']
-};
+const LEARNING_LEVELS = [
+  'تمهیدي او ابتدایي',
+  'متوسطه',
+  'عالیه',
+  'تخصص',
+  'څېړنه او تکمیل'
+];
 
-const SECTION_EXTRA_FOLDERS = {
-  'حدیث او علوم الحدیث': ['کتب تسعه', 'مشکاة المصابيح', 'نور حدیثي کتابونه', 'مصطلح الحدیث', 'تخریج او تحقیق', 'شرح الحدیث'],
-  'فقه او فروع': ['عبادات', 'معاملات', 'نکاح او کورنۍ', 'طلاق', 'میراث', 'حنفي', 'مالکي', 'شافعي', 'حنبلي', 'فقه مقارن او دلایل'],
-  'عقیده او توحید': ['توحید', 'ایمان', 'اسماء او صفات', 'فرقې او مذاهب', 'ردود او مناقشې'],
-  'اصول الفقه او قواعد': ['اصول الفقه', 'قواعد فقهیه', 'مقاصد الشریعة', 'دلیل او استنباط'],
-  'سیرت او شمائل نبوي ﷺ': ['مکي ژوند', 'مدني ژوند', 'غزوات او سریې', 'شمائل او خصائص'],
-  'اسلامي تاریخ او تمدن': ['د نبوي دورې تاریخ', 'خلافت راشده', 'اسلامي دولتونه', 'تمدن او کلتور'],
-  'د صحابه‌وو او علماوو ژوندلیکونه': ['صحابه کرام', 'تابعین', 'محدثین', 'فقهاء', 'معاصر علماء'],
-  'عربي ژبه او ادبیات': ['نحو', 'صرف', 'بلاغت', 'لغت', 'ادب او انشاء'],
-  'اخلاق، تزکیه او سلوک': ['اخلاق', 'تزکیه نفس', 'رقائق', 'آداب'],
-  'دعوت، تبلیغ او خطابت': ['دعوت اصول', 'خطابت', 'مناظره', 'دعوتي تجربې'],
-  'فتاوی او معاصرې مسئلې': ['عبادات', 'اقتصادي مسئلې', 'طبي مسئلې', 'ټولنیزې مسئلې', 'معاصرې فتاوی'],
-  'اسلامي زده کړې او درسي نصاب': ['ابتدایي نصاب', 'منځنی نصاب', 'عالي نصاب', 'ازموینې او تمرینونه'],
-  'دعاوې، اذکار او عبادتي لارښود': ['د سهار او ماښام اذکار', 'د لمانځه لارښود', 'حج او عمره', 'روژه', 'دعاوې'],
-  'اسلام، کورنۍ او ټولنه': ['حقوق الزوجین', 'د اولاد روزنه', 'کورنۍ', 'ټولنیز اخلاق'],
-  'اسلام او معاصر علوم': ['اقتصاد', 'ساینس', 'ټکنالوژي', 'معاصر فکري بحثونه']
-};
+function canonicalLearningLevel(level) {
+  const value = String(level || '').trim();
+  if (['ابتدایي', 'تمهیدي', 'تمهیدي او ابتدایي', ''].includes(value)) return 'تمهیدي او ابتدایي';
+  if (['منځنۍ', 'منځنی', 'متوسط', 'متوسطه'].includes(value)) return 'متوسطه';
+  if (['عالي', 'عالیه'].includes(value)) return 'عالیه';
+  if (['تخصصي', 'تخصص'].includes(value)) return 'تخصص';
+  if (['څېړنه', 'تکمیل', 'څېړنه او تکمیل'].includes(value)) return 'څېړنه او تکمیل';
+  return LEARNING_LEVELS.includes(value) ? value : 'تمهیدي او ابتدایي';
+}
 
 // د پخوانیو نسخو د برخو نومونه ساتل کېږي، څو زاړه کتابونه او درسونه ورک نه شي.
 const LEGACY_SECTION_MAP = {
@@ -373,6 +427,7 @@ export default function App() {
   const [selectedHomeGroup, setSelectedHomeGroup] = useState(null);
   const [selectedSection, setSelectedSection] = useState('');
   const [selectedFolder, setSelectedFolder] = useState('');
+  const [selectedFolderParent, setSelectedFolderParent] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
   const [selectedBook, setSelectedBook] = useState(null);
   const [selectedDhikr, setSelectedDhikr] = useState(null);
@@ -486,7 +541,7 @@ export default function App() {
   const [formTime, setFormTime] = useState('');
   const [formCount, setFormCount] = useState('');
   const [formScholar, setFormScholar] = useState('');
-  const [formLevel, setFormLevel] = useState('ابتدایي');
+  const [formLevel, setFormLevel] = useState('تمهیدي او ابتدایي');
   const [formSurah, setFormSurah] = useState('');
   const [formAyah, setFormAyah] = useState('');
   const [formPageMap, setFormPageMap] = useState('');
@@ -774,7 +829,8 @@ export default function App() {
       oldCategory: 'scholar',
       oldBook: 'oldCategory',
       section: 'home',
-      sectionFolder: 'section',
+      sectionSubFolders: 'section',
+      sectionFolder: selectedFolderParent ? 'sectionSubFolders' : 'section',
       itemDetails: 'sectionFolder',
       lessonEditor: 'sectionFolder',
       notes: 'home',
@@ -797,7 +853,7 @@ export default function App() {
       settings: 'home',
       search: 'home',
       favorites: 'home',
-      quran: 'home',
+      quran: 'section',
       quranEditor: 'quran',
       learningPath: 'home',
       audioPlayer: 'itemDetails',
@@ -847,7 +903,7 @@ export default function App() {
     setFormTime('');
     setFormCount('');
     setFormScholar('');
-    setFormLevel('ابتدایي');
+    setFormLevel('تمهیدي او ابتدایي');
     setFormSurah('');
     setFormAyah('');
     setFormPageMap('');
@@ -1174,7 +1230,7 @@ export default function App() {
       permission: formPermission.trim(),
       section: quranMode ? 'قرآن کریم او علوم القرآن' : selectedSection,
       folder: quranMode ? 'قرآن کریم' : selectedFolder,
-      level: formLevel,
+      level: canonicalLearningLevel(formLevel),
       surah: quranMode ? formSurah.trim() : '',
       ayah: quranMode ? formAyah.trim() : '',
       pageMap: parsedPageMap,
@@ -2680,8 +2736,23 @@ export default function App() {
 
   function getSectionFolders(section) {
     const canonical = canonicalSection(section);
-    const extras = SECTION_EXTRA_FOLDERS[canonical] || [];
-    return [...new Set([...COMMON_SECTION_FOLDERS, ...extras])];
+    return SECTION_FOLDER_TREE[canonical] || [{ name: 'نور پخواني مواد' }];
+  }
+
+  function getFolderItemCount(folder) {
+    const names = folder.children ? folder.children : [folder.name];
+    const legacyNames = folder.name === 'نور پخواني مواد' ? LEGACY_COMMON_FOLDERS : [];
+    const quranResourceTypes = selectedSection === 'قرآن کریم او علوم القرآن' ? ({
+      'تلاوت او حفظ': ['تلاوت', 'حفظ'],
+      'تجوید او قرائتونه': ['تجوید'],
+      'تفسیر': ['تفسیر'],
+      'ژباړه او ترجمه': ['ژباړه', 'ترجمه']
+    }[folder.name] || []) : [];
+    return globalItems.filter(item =>
+      (item.section === selectedSection || LEGACY_SECTION_MAP[item.section] === selectedSection) &&
+      ([...names, ...legacyNames].includes(item.folder) ||
+        (item.resourceType === 'quran' && quranResourceTypes.includes(item.resourceCategory)))
+    ).length;
   }
 
   async function addScholarFolder() {
@@ -2697,15 +2768,18 @@ export default function App() {
     const canonical = canonicalSection(section);
     setSelectedSection(canonical);
     setSelectedFolder('');
-    if (canonical === 'قرآن کریم او علوم القرآن') {
-      setScreen('quran');
-      return;
-    }
+    setSelectedFolderParent('');
     setScreen('section');
   }
 
-  function openFolder(folder) {
+  function openFolder(folder, parent = '') {
     setSelectedFolder(folder);
+    setSelectedFolderParent(parent);
+    // د قرآن کریم اصلي فولډر د اپلېکېشن پخوانی ۱۱۴ سورتونو سیستم پرانیزي.
+    if (selectedSection === 'قرآن کریم او علوم القرآن' && folder === 'قرآن کریم') {
+      setScreen('quran');
+      return;
+    }
     setScreen('sectionFolder');
   }
 
@@ -2716,10 +2790,19 @@ export default function App() {
 
   function getFolderItems() {
     const aliases = Object.keys(LEGACY_SECTION_MAP).filter(oldName => LEGACY_SECTION_MAP[oldName] === selectedSection);
-    const acceptedFolderNames = [selectedFolder, ...(FOLDER_ALIASES[selectedFolder] || [])];
+    const acceptedFolderNames = selectedFolder === 'نور پخواني مواد'
+      ? [selectedFolder, ...LEGACY_COMMON_FOLDERS]
+      : [selectedFolder];
+    const quranResourceTypes = selectedSection === 'قرآن کریم او علوم القرآن' ? ({
+      'تلاوت او حفظ': ['تلاوت', 'حفظ'],
+      'تجوید او قرائتونه': ['تجوید'],
+      'تفسیر': ['تفسیر'],
+      'ژباړه او ترجمه': ['ژباړه', 'ترجمه']
+    }[selectedFolder] || []) : [];
     return globalItems.filter(item =>
       (item.section === selectedSection || aliases.includes(item.section)) &&
-      acceptedFolderNames.includes(item.folder)
+      (acceptedFolderNames.includes(item.folder) ||
+        (item.resourceType === 'quran' && quranResourceTypes.includes(item.resourceCategory)))
     );
   }
 
@@ -3418,24 +3501,47 @@ export default function App() {
             />
 
             {getSectionFolders(selectedSection).map((folder, index) => {
-              const count = globalItems.filter(item =>
-                (item.section === selectedSection || (LEGACY_SECTION_MAP[item.section] === selectedSection)) && item.folder === folder
-              ).length;
+              const count = getFolderItemCount(folder);
+              const hasChildren = Array.isArray(folder.children) && folder.children.length > 0;
               return (
                 <TouchableOpacity
-                  key={folder}
+                  key={folder.name}
                   style={styles.listCard}
-                  onPress={() => openFolder(folder)}
+                  onPress={() => {
+                    if (hasChildren) {
+                      setSelectedFolderParent(folder.name);
+                      setScreen('sectionSubFolders');
+                    } else {
+                      openFolder(folder.name);
+                    }
+                  }}
                 >
-                  <Ionicons name={['school-outline','book-outline','school-outline','library-outline','albums-outline','document-text-outline','headset-outline','videocam-outline','newspaper-outline','help-circle-outline','clipboard-outline','bookmark-outline'][index % 12]} size={22} color={COLORS.gold} />
+                  <Ionicons name={hasChildren ? 'folder-open-outline' : ['book-outline','school-outline','library-outline','albums-outline','document-text-outline','bookmark-outline'][index % 6]} size={22} color={COLORS.gold} />
                   <View style={styles.flexText}>
-                    <Text style={[styles.listCardTitle, { color: settings.textColor }]}>{folder}</Text>
-                    <Text style={styles.smallMuted}>{count} مواد</Text>
+                    <Text style={[styles.listCardTitle, { color: settings.textColor }]}>{folder.name}</Text>
+                    <Text style={styles.smallMuted}>{hasChildren ? `${folder.children.length} فرعي فولډرونه · ${count} مواد` : `${count} مواد`}</Text>
                   </View>
                   <Text style={styles.lessonArrow}>‹</Text>
                 </TouchableOpacity>
               );
             })}
+          </ScrollView>
+        )}
+
+        {/* د څو پوړیزو علمي فولډرونو دویمه کچه */}
+        {screen === 'sectionSubFolders' && (
+          <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
+            <PageHeader title={selectedFolderParent} subtitle={selectedSection} onBack={goBack} />
+            {(getSectionFolders(selectedSection).find(folder => folder.name === selectedFolderParent)?.children || []).map((child, index) => (
+              <TouchableOpacity key={child} style={styles.listCard} onPress={() => openFolder(child, selectedFolderParent)}>
+                <Ionicons name="book-outline" size={22} color={COLORS.gold} />
+                <View style={styles.flexText}>
+                  <Text style={[styles.listCardTitle, { color: settings.textColor }]}>{child}</Text>
+                  <Text style={styles.smallMuted}>{getFolderItemCount({ name: child })} مواد</Text>
+                </View>
+                <Text style={styles.lessonArrow}>‹</Text>
+              </TouchableOpacity>
+            ))}
           </ScrollView>
         )}
 
@@ -3447,7 +3553,7 @@ export default function App() {
           <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader
               title={selectedFolder}
-              subtitle={selectedSection}
+              subtitle={selectedFolderParent ? `${selectedSection} · ${selectedFolderParent}` : selectedSection}
               onBack={goBack}
             />
 
@@ -3473,6 +3579,12 @@ export default function App() {
 
                   <Text style={styles.smallMuted}>
                     {item.description}
+                  </Text>
+                  <Text style={styles.smallMuted}>
+                    {item.resourceCategory || item.resourceType || 'مواد'}
+                    {item.pdf ? '  ·  PDF' : ''}
+                    {item.audio ? '  ·  آډیو' : ''}
+                    {item.video ? '  ·  ویډیو' : ''}
                   </Text>
                 </TouchableOpacity>
 
@@ -3536,7 +3648,7 @@ export default function App() {
             </View>
             <Text style={[styles.cardHeading, { color: settings.headingColor }]}>د زده کړې کچه</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-              {['ابتدایي', 'منځنۍ', 'تخصصي'].map(level => (
+              {LEARNING_LEVELS.map(level => (
                 <TouchableOpacity key={level} onPress={() => setFormLevel(level)} style={{ paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, borderWidth: 1, borderColor: formLevel === level ? COLORS.gold : COLORS.border, backgroundColor: formLevel === level ? COLORS.card2 : COLORS.card }}>
                   <Text style={{ color: COLORS.white }}>{level}</Text>
                 </TouchableOpacity>
@@ -4797,12 +4909,12 @@ export default function App() {
         {screen === 'learningPath' && (
           <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader title="د زده کړې مسیر" subtitle="له بنسټیزې زده کړې تر تخصص پورې منظم پرمختګ" onBack={goBack} />
-            {['ابتدایي', 'منځنۍ', 'تخصصي'].map((level, index) => {
-              const levelItems = globalItems.filter(item => (item.level || 'ابتدایي') === level);
+            {LEARNING_LEVELS.map((level, index) => {
+              const levelItems = globalItems.filter(item => canonicalLearningLevel(item.level) === level);
               return (
                 <View key={level} style={styles.formCard}>
                   <Text style={[styles.cardHeading, { color: settings.headingColor }]}>{index + 1}. {level} کچه</Text>
-                  <Text style={styles.smallMuted}>{index === 0 ? 'بنسټیز معلومات او ساده درسونه' : index === 1 ? 'تفصیلي درسونه او عملي زده کړې' : 'ژورې څېړنې او تخصصي مطالب'}</Text>
+                  <Text style={styles.smallMuted}>{['بنسټیز علوم او لومړني کتابونه', 'منځنۍ کچې کتابونه او درسونه', 'لوړې علمي زده کړې', 'په ځانګړو علمي برخو کې ژوره زده کړه', 'تحقیق، علمي مقالې او تکمیلي زده کړې'][index]}</Text>
                   <Text style={styles.smallMuted}>بشپړ شوی: {levelItems.filter(item => learningProgress.includes(item.id)).length} / {levelItems.length} درسونه · {levelItems.length ? Math.round(levelItems.filter(item => learningProgress.includes(item.id)).length / levelItems.length * 100) : 0}%</Text>
                   {levelItems.map(item => (
                     <View key={item.id} style={[styles.lessonCard, { flexDirection: 'row', alignItems: 'center' }]}>
@@ -4820,7 +4932,7 @@ export default function App() {
                 </View>
               );
             })}
-            <GoldButton title="＋ د زده کړې نوی درس اضافه کړئ" onPress={() => { clearForm(); setSelectedScholar(''); setQuranMode(false); setSelectedSection('اسلامي زده کړې او درسي نصاب'); setSelectedFolder('ابتدایي'); setScreen('lessonEditor'); }} />
+            <GoldButton title="＋ د زده کړې نوی درس اضافه کړئ" onPress={() => { clearForm(); setSelectedScholar(''); setQuranMode(false); setSelectedSection('اسلامي زده کړې او درسي نصاب'); setSelectedFolder('تمهیدي او ابتدایي'); setSelectedFolderParent(''); setFormLevel('تمهیدي او ابتدایي'); setScreen('lessonEditor'); }} />
           </ScrollView>
         )}
 
