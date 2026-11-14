@@ -555,6 +555,8 @@ export default function App() {
   const [formDescription, setFormDescription] = useState('');
   const [formText, setFormText] = useState('');
   const [formAudio, setFormAudio] = useState('');
+  const [formAudioTracks, setFormAudioTracks] = useState([]);
+  const [formAttachments, setFormAttachments] = useState([]);
   const [formPDF, setFormPDF] = useState('');
   const [formVideo, setFormVideo] = useState('');
   const [formLanguage, setFormLanguage] = useState('پښتو');
@@ -925,6 +927,8 @@ export default function App() {
     setFormDescription('');
     setFormText('');
     setFormAudio('');
+    setFormAudioTracks([]);
+    setFormAttachments([]);
     setFormPDF('');
     setFormVideo('');
     setFormLanguage('پښتو');
@@ -1083,23 +1087,90 @@ export default function App() {
       const result = await DocumentPicker.getDocumentAsync({
         type: ['audio/*'],
         copyToCacheDirectory: true,
-        multiple: false
+        multiple: true
       });
 
       if (!result.canceled && result.assets?.length) {
-        const file = result.assets[0];
-
-        const stableUri = await keepPickedFile(file, 'audio');
-        setFormAudio(stableUri);
-
-        if (!formDescription) {
-          setFormDescription(file.name || '');
+        const added = [];
+        for (const file of result.assets) {
+          const stableUri = await keepPickedFile(file, 'audio');
+          added.push({
+            id: `audio-${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${added.length}`,
+            name: file.name || `غږیز فایل ${added.length + 1}`,
+            uri: stableUri,
+            mimeType: file.mimeType || 'audio/*',
+            size: file.size || 0
+          });
         }
+        setFormAudioTracks(previous => [...previous, ...added]);
+        if (!formAudioTracks.length && added.length) setFormAudio(added[0].uri);
+        if (!formDescription && added[0]?.name) setFormDescription(added[0].name);
+        Alert.alert('فایلونه انتخاب شول', `${added.length} غږیز فایلونه اضافه شول.`);
       }
-
     } catch (error) {
-      Alert.alert('ستونزه', 'آډیو فایل انتخاب نه شو.');
+      Alert.alert('ستونزه', 'غږیز فایلونه انتخاب نه شول.');
     }
+  }
+
+  function removeFormAudioTrack(trackId) {
+    setFormAudioTracks(previous => {
+      const next = previous.filter(track => track.id !== trackId);
+      setFormAudio(next[0]?.uri || '');
+      return next;
+    });
+  }
+
+  function moveFormAudioTrack(index, direction) {
+    const target = index + direction;
+    if (target < 0 || target >= formAudioTracks.length) return;
+    const next = [...formAudioTracks];
+    [next[index], next[target]] = [next[target], next[index]];
+    setFormAudioTracks(next);
+    setFormAudio(next[0]?.uri || '');
+  }
+
+  async function removeSavedAudioTrack(item, trackId) {
+    const tracks = (item.audioTracks || []).filter(track => track.id !== trackId);
+    const updatedItem = { ...item, audioTracks: tracks, audio: tracks[0]?.uri || '' };
+    await saveGlobalItems(globalItems.map(row => row.id === item.id ? updatedItem : row));
+    setSelectedItem(updatedItem);
+  }
+
+  async function pickLessonAttachments() {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true,
+        multiple: true
+      });
+      if (result.canceled || !result.assets?.length) return;
+      const added = [];
+      for (const file of result.assets) {
+        const stableUri = await keepPickedFile(file, 'attachment');
+        added.push({
+          id: `attachment-${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${added.length}`,
+          name: file.name || `ضمیمه ${added.length + 1}`,
+          uri: stableUri,
+          mimeType: file.mimeType || 'application/octet-stream',
+          size: file.size || 0
+        });
+      }
+      setFormAttachments(previous => [...previous, ...added]);
+      Alert.alert('فایلونه انتخاب شول', `${added.length} اضافي فایلونه د درس لپاره ټاکل شول.`);
+    } catch (error) {
+      Alert.alert('ستونزه', 'اضافي فایلونه انتخاب نه شول.');
+    }
+  }
+
+  function removeFormAttachment(id) {
+    setFormAttachments(previous => previous.filter(file => file.id !== id));
+  }
+
+  async function removeSavedAttachment(item, attachmentId) {
+    const attachments = (item.attachments || []).filter(file => file.id !== attachmentId);
+    const updatedItem = { ...item, attachments };
+    await saveGlobalItems(globalItems.map(row => row.id === item.id ? updatedItem : row));
+    setSelectedItem(updatedItem);
   }
 
   // ==================================================
@@ -1257,6 +1328,8 @@ export default function App() {
         permission: formPermission.trim(),
         pdf: formPDF,
         audio: formAudio,
+        audioTracks: formAudioTracks.length ? formAudioTracks : (formAudio ? [{ id: `audio-${Date.now()}`, name: 'آډیو', uri: formAudio }] : []),
+        attachments: formAttachments,
         section: selectedSection,
         folder: selectedFolder,
         resourceType: 'arabicAcademicBook',
@@ -1273,7 +1346,9 @@ export default function App() {
       title: formTitle.trim(),
       description: formDescription,
       text: formText,
-      audio: formAudio,
+      audio: formAudioTracks[0]?.uri || formAudio,
+      audioTracks: formAudioTracks.length ? formAudioTracks : (formAudio ? [{ id: `audio-${Date.now()}`, name: 'آډیو', uri: formAudio }] : []),
+      attachments: formAttachments,
       pdf: formPDF,
       video: formVideo,
       scholar: formScholar.trim(),
@@ -1365,7 +1440,18 @@ export default function App() {
   // ==================================================
 
   function getAudioQueue() {
-    return globalItems.filter(item => !!item.audio);
+    return globalItems.flatMap(item => {
+      const tracks = Array.isArray(item.audioTracks) && item.audioTracks.length
+        ? item.audioTracks
+        : (item.audio ? [{ id: 'main', name: item.title || 'آډیو', uri: item.audio }] : []);
+      return tracks.filter(track => !!track?.uri).map((track, index) => ({
+        ...item,
+        id: tracks.length > 1 || track.id !== 'main' ? `${item.id}::${track.id || index}` : item.id,
+        title: tracks.length > 1 ? `${item.title} – ${track.name || `کلیپ ${index + 1}`}` : item.title,
+        audio: track.uri,
+        audioTrackName: track.name || ''
+      }));
+    });
   }
 
   async function persistAudioProgress(item, positionMillis) {
@@ -2492,7 +2578,8 @@ export default function App() {
       title: formTitle.trim(),
       scholar: selectedScholar,
       section: selectedSection,
-      audio: formAudio || '',
+      audio: formAudioTracks[0]?.uri || formAudio || '',
+      audioTracks: formAudioTracks,
       pdf: formPDF || '',
       chapters: []
     };
@@ -2557,7 +2644,8 @@ export default function App() {
               {
                 id: Date.now().toString(),
                 title: chapterName.trim(),
-                audio: formAudio || '',
+                audio: formAudioTracks[0]?.uri || formAudio || '',
+                audioTracks: formAudioTracks,
                 pdf: formPDF || '',
                 audioStartSeconds: parsedChapterStart,
                 pdfPage: chapterPdfPage.trim() ? Number.parseInt(chapterPdfPage, 10) : null,
@@ -2583,6 +2671,7 @@ export default function App() {
     setChapterAudioStart('');
     setChapterPdfPage('');
     setFormAudio('');
+    setFormAudioTracks([]);
     setFormPDF('');
     setEditorType('');
   }
@@ -2623,7 +2712,8 @@ export default function App() {
                   {
                     id: Date.now().toString(),
                     title: lessonName.trim(),
-                    audio: formAudio || '',
+                    audio: formAudioTracks[0]?.uri || formAudio || '',
+                    audioTracks: formAudioTracks,
                     pdf: formPDF || '',
                     audioStartSeconds: parsedLessonStart,
                     pdfPage: lessonPdfPage.trim() ? Number.parseInt(lessonPdfPage, 10) : null,
@@ -2652,6 +2742,7 @@ export default function App() {
     setLessonAudioStart('');
     setLessonPdfPage('');
     setFormAudio('');
+    setFormAudioTracks([]);
     setFormPDF('');
     setEditorType('');
   }
@@ -3784,7 +3875,7 @@ export default function App() {
 
               <Text style={styles.smallMuted}>د څپرکي آډیو او PDF (اختیاري)</Text>
               <GoldButton title="♫ د څپرکي آډیو وټاکئ" secondary onPress={pickAudio} />
-              {formAudio ? <Text style={styles.fileSelected}>د څپرکي آډیو انتخاب شوه ✓</Text> : null}
+              {formAudioTracks.length ? <Text style={styles.fileSelected}>{formAudioTracks.length} غږیز کلیپونه ټاکل شوي ✓</Text> : (formAudio ? <Text style={styles.fileSelected}>د څپرکي آډیو انتخاب شوه ✓</Text> : null)}
               <GoldButton title="▤ د څپرکي PDF وټاکئ" secondary onPress={pickPDF} />
               {formPDF ? <Text style={styles.fileSelected}>د څپرکي PDF انتخاب شو ✓</Text> : null}
               <Text style={styles.smallMuted}>که د کتاب ګډه آډیو/PDF کاروې، دلته د دې څپرکي د پیل وخت او مخ ولیکه؛ جلا فایل ته اړتیا نشته.</Text>
@@ -3827,7 +3918,7 @@ export default function App() {
                       {lessonIndex + 1}. {lesson.title}
                     </Text>
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 7 }}>
-                      {(lesson.audio || selectedItem?.audio) ? <GoldButton title="▶ آډیو واوره" secondary onPress={() => openBookAudio(lesson, chapter)} /> : null}
+                      {Array.isArray(lesson.audioTracks) && lesson.audioTracks.length ? lesson.audioTracks.map((track, trackIndex) => <GoldButton key={track.id || trackIndex} title={`▶ ${track.name || `کلیپ ${trackIndex + 1}`}`} secondary onPress={() => startAudio({ id: `book-audio-${lesson.id}::${track.id || trackIndex}`, title: `${lesson.title} – ${track.name || `کلیپ ${trackIndex + 1}`}`, audio: track.uri, scholar: lesson.scholar || selectedScholar, section: lesson.section || selectedSection }, Math.max(0, Number(lesson.audioStartSeconds || 0)) * 1000)} />) : (lesson.audio || selectedItem?.audio) ? <GoldButton title="▶ آډیو واوره" secondary onPress={() => openBookAudio(lesson, chapter)} /> : null}
                       {(lesson.pdf || selectedItem?.pdf) ? <GoldButton title="▤ PDF ولوله" secondary onPress={() => openBookPDF(lesson, chapter)} /> : null}
                     </View>
                   </View>
@@ -3845,10 +3936,10 @@ export default function App() {
 
                 <Text style={styles.smallMuted}>د همدې درس آډیو او PDF (اختیاري)</Text>
                 <GoldButton title="♫ د درس آډیو وټاکئ" secondary onPress={pickAudio} />
-                {formAudio ? <Text style={styles.fileSelected}>د درس آډیو انتخاب شوه ✓</Text> : null}
+                {formAudioTracks.length ? <Text style={styles.fileSelected}>د درس لپاره {formAudioTracks.length} غږیز کلیپونه ټاکل شوي ✓</Text> : (formAudio ? <Text style={styles.fileSelected}>د درس آډیو انتخاب شوه ✓</Text> : null)}
                 <GoldButton title="▤ د درس PDF وټاکئ" secondary onPress={pickPDF} />
                 {formPDF ? <Text style={styles.fileSelected}>د درس PDF انتخاب شو ✓</Text> : null}
-                <Text style={styles.smallMuted}>د کتاب ګډه آډیو او PDF هم کارولای شې. د دې درس لپاره یوازې د پیل وخت او اړوند مخ ثبت کړه؛ که ځانګړی فایل پورته کړې، هغه به د کتاب له ګډ فایل څخه مخکې وکارول شي.</Text>
+                <Text style={styles.smallMuted}>د آډیو تڼۍ په وسیله څو کلیپونه په یوه ځل ټاکلای شې؛ ټول به د همدې درس برخه شي. د کتاب ګډه آډیو او PDF هم کارولای شې. د دې درس لپاره یوازې د پیل وخت او اړوند مخ ثبت کړه؛ که ځانګړی فایل پورته کړې، هغه به د کتاب له ګډ فایل څخه مخکې وکارول شي.</Text>
                 <Field textColor={settings.textColor} label="د آډیو د درس پیل (دقیقې:ثانیې)" value={editorType === chapter.id ? lessonAudioStart : ''} onChangeText={value => { setEditorType(chapter.id); setLessonAudioStart(value); }} placeholder="16:20" />
                 <Field textColor={settings.textColor} label="په ګډ PDF کې د درس مخ" value={editorType === chapter.id ? lessonPdfPage : ''} onChangeText={value => { setEditorType(chapter.id); setLessonPdfPage(value); }} placeholder="125" keyboardType="number-pad" />
                 <GoldButton
@@ -4187,10 +4278,20 @@ export default function App() {
                 onPress={pickAudio}
               />
 
-              {formAudio ? (
-                <Text style={styles.fileSelected}>
-                  {t("آډیو فایل انتخاب شو ✓")}</Text>
-              ) : null}
+              {formAudioTracks.length > 0 ? (
+                <View style={{ marginTop: 8, marginBottom: 10 }}>
+                  <Text style={styles.fileSelected}>ټاکل شوي غږیز فایلونه: {formAudioTracks.length}</Text>
+                  {formAudioTracks.map((track, index) => (
+                    <View key={track.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: COLORS.border }}>
+                      <Text style={[styles.smallMuted, { flex: 1 }]} numberOfLines={2}>{index + 1}. {track.name}</Text>
+                      <TouchableOpacity onPress={() => moveFormAudioTrack(index, -1)} style={{ padding: 7 }}><Ionicons name="arrow-up" size={18} color={COLORS.gold} /></TouchableOpacity>
+                      <TouchableOpacity onPress={() => moveFormAudioTrack(index, 1)} style={{ padding: 7 }}><Ionicons name="arrow-down" size={18} color={COLORS.gold} /></TouchableOpacity>
+                      <TouchableOpacity onPress={() => removeFormAudioTrack(track.id)} style={{ padding: 7 }}><Ionicons name="trash-outline" size={18} color={COLORS.red} /></TouchableOpacity>
+                    </View>
+                  ))}
+                  <Text style={styles.smallMuted}>ټول فایلونه به په همدې یوه درس کې خوندي شي. ترتیب یې د غږیزو کلیپونو د لېست ترتیب دی.</Text>
+                </View>
+              ) : formAudio ? <Text style={styles.fileSelected}>{t("آډیو فایل انتخاب شو ✓")}</Text> : null}
 
               <GoldButton
                 title="▤ PDF کتاب وټاکئ"
@@ -4204,6 +4305,18 @@ export default function App() {
               ) : null}
               <GoldButton title="▣ اختیاري ویډیو وټاکئ" secondary onPress={pickVideo} />
               {formVideo ? <Text style={styles.fileSelected}>ویډیو انتخاب شوه ✓</Text> : <Text style={styles.smallMuted}>ویډیو هم اختیاري ده.</Text>}
+              <GoldButton title="＋ نور فایلونه یوځای وټاکئ (Word، PowerPoint، انځور، PDF، ویډیو...)" secondary onPress={pickLessonAttachments} />
+              {formAttachments.length > 0 ? (
+                <View style={{ marginTop: 8 }}>
+                  <Text style={styles.fileSelected}>نور ټاکل شوي فایلونه: {formAttachments.length}</Text>
+                  {formAttachments.map((file, index) => (
+                    <View key={file.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 5 }}>
+                      <Text style={[styles.smallMuted, { flex: 1 }]} numberOfLines={2}>{index + 1}. {file.name}</Text>
+                      <TouchableOpacity onPress={() => removeFormAttachment(file.id)} style={{ padding: 7 }}><Ionicons name="trash-outline" size={18} color={COLORS.red} /></TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              ) : <Text style={styles.smallMuted}>اضافي اسناد او فایلونه هم په یوه ځل انتخابولای شې.</Text>}
             </View>
 
             <GoldButton
@@ -4263,7 +4376,21 @@ export default function App() {
               </View>
             ) : null}
             {selectedItem?.video ? <GoldButton title="▣ ویډیو فایل شریک کړئ" secondary onPress={() => shareFile(selectedItem.video, 'video/*')} /> : null}
-            {selectedItem?.audio ? (
+            {Array.isArray(selectedItem?.audioTracks) && selectedItem.audioTracks.length > 0 ? (
+              <View style={styles.formCard}>
+                <Text style={[styles.cardHeading, { color: settings.headingColor }]}>د دې درس غږیز کلیپونه ({selectedItem.audioTracks.length})</Text>
+                {selectedItem.audioTracks.map((track, index) => (
+                  <View key={track.id || `${selectedItem.id}-audio-${index}`} style={{ paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: COLORS.border }}>
+                    <Text style={[styles.lessonTitle, { color: COLORS.white }]}>{index + 1}. {track.name || `غږیز کلیپ ${index + 1}`}</Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 7 }}>
+                      <GoldButton title="▶ واوره" onPress={() => startAudio({ ...selectedItem, id: `${selectedItem.id}::${track.id || index}`, title: `${selectedItem.title} – ${track.name || `کلیپ ${index + 1}`}`, audio: track.uri })} />
+                      <GoldButton title="شریکول" secondary onPress={() => shareFile(track.uri, track.mimeType || 'audio/*')} />
+                      {selectedItem.id && globalItems.some(row => row.id === selectedItem.id) ? <GoldButton title="حذف" secondary onPress={() => Alert.alert('کلیپ حذف', `«${track.name || 'غږیز کلیپ'}» حذف شي؟`, [{ text: 'نه', style: 'cancel' }, { text: 'هو، حذف', style: 'destructive', onPress: () => removeSavedAudioTrack(selectedItem, track.id) }])} /> : null}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : selectedItem?.audio ? (
               <>
                 <GoldButton title="▶ بیان واوره" onPress={() => startAudio(selectedItem)} />
                 <GoldButton title="♫ آډیو شریکول" secondary onPress={() => shareFile(selectedItem.audio, 'audio/*')} />
@@ -4275,6 +4402,22 @@ export default function App() {
                 <GoldButton title="▤ PDF کتاب ولوله" onPress={() => openPdf(selectedItem, 1)} />
                 <GoldButton title={t("PDF شریکول")} secondary onPress={() => shareFile(selectedItem.pdf, 'application/pdf')} />
               </>
+            ) : null}
+
+            {Array.isArray(selectedItem?.attachments) && selectedItem.attachments.length > 0 ? (
+              <View style={styles.formCard}>
+                <Text style={[styles.cardHeading, { color: settings.headingColor }]}>نور ضمیمه شوي فایلونه ({selectedItem.attachments.length})</Text>
+                {selectedItem.attachments.map((file, index) => (
+                  <View key={file.id || index} style={{ paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: COLORS.border }}>
+                    <Text style={[styles.lessonTitle, { color: COLORS.white }]}>{index + 1}. {file.name}</Text>
+                    <Text style={styles.smallMuted}>{file.size ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` : (file.mimeType || 'فایل')}</Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
+                      <GoldButton title="شریکول" secondary onPress={() => shareFile(file.uri, file.mimeType)} />
+                      {globalItems.some(row => row.id === selectedItem.id) ? <GoldButton title="حذف" secondary onPress={() => Alert.alert('فایل حذف', `«${file.name}» حذف شي؟`, [{ text: 'نه', style: 'cancel' }, { text: 'هو، حذف', style: 'destructive', onPress: () => removeSavedAttachment(selectedItem, file.id) }])} /> : null}
+                    </View>
+                  </View>
+                ))}
+              </View>
             ) : null}
 
             <GoldButton
