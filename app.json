@@ -1,8 +1,8 @@
- 
 {
   "expo": {
     "name": "اسلامي علمي کتابتون",
-   "slug": "islamic-knowledge",
+    "slug": "islamic-university",
+    "owner": "saeed76rsaeed",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
@@ -12,7 +12,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "e28088ba-5d18-4f96-a7e2-24b12739df84"
+        "projectId": "a10acef4-4a22-4efa-8fc7-c493f76f7fb5"
       }
     },
     "description": "اسلامي علمي کتابتون"
