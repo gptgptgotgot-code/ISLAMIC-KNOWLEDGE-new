@@ -437,6 +437,14 @@ export default function App() {
   const [folderAdmin, setFolderAdmin] = useState({ allahNames: ALLAH_NAMES, quranExtra: {}, sectionOrder: {} });
   const [newAdminFolderName, setNewAdminFolderName] = useState('');
   const [newAllahName, setNewAllahName] = useState('');
+  const [newSectionFolderName, setNewSectionFolderName] = useState('');
+  const [newSubFolderName, setNewSubFolderName] = useState('');
+  const [editingFolderKey, setEditingFolderKey] = useState('');
+  const [editingFolderName, setEditingFolderName] = useState('');
+  const [newHomeCardTitle, setNewHomeCardTitle] = useState('');
+  const [newHomeCardSubtitle, setNewHomeCardSubtitle] = useState('');
+  const [newHomeCardSection, setNewHomeCardSection] = useState('');
+  const [newHomeCardIcon, setNewHomeCardIcon] = useState('folder-outline');
   const [selectedHomeGroup, setSelectedHomeGroup] = useState(null);
   const [selectedSection, setSelectedSection] = useState('');
   const [selectedFolder, setSelectedFolder] = useState('');
@@ -2744,15 +2752,15 @@ export default function App() {
     Object.entries(books || {}).forEach(([bookGroup, groupBooks]) => {
       (Array.isArray(groupBooks) ? groupBooks : []).forEach(book => {
         if (has(`${book.title} ${book.name} ${book.description} ${bookGroup}`)) {
-          matches.push({ id: book.id || `book-${book.title}`, title: book.title || book.name || 'کتاب', description: book.description || '', _resultType: 'book', _resultLabel: 'کتاب', _book: book, _bookGroup: bookGroup });
+          matches.push({ id: book.id || `book-${book.title}`, title: book.title || book.name || 'کتاب', description: book.description || '', _resultType: 'book', _resultSubtype: 'book', _resultLabel: 'کتاب', _book: book, _bookGroup: bookGroup });
         }
         (book.chapters || []).forEach(chapter => {
           if (has(`${chapter.title} ${chapter.name} ${book.title}`)) {
-            matches.push({ id: chapter.id, title: chapter.title || chapter.name || 'څپرکی', description: book.title || '', _resultType: 'book', _resultLabel: 'د کتاب څپرکی', _book: book, _bookGroup: bookGroup });
+            matches.push({ id: chapter.id, title: chapter.title || chapter.name || 'څپرکی', description: book.title || '', _resultType: 'book', _resultSubtype: 'chapter', _chapter: chapter, _resultLabel: 'د کتاب څپرکی', _book: book, _bookGroup: bookGroup });
           }
           (chapter.lessons || []).forEach(lesson => {
             if (has(`${lesson.title} ${lesson.name} ${book.title} ${chapter.title}`)) {
-              matches.push({ id: lesson.id, title: lesson.title || lesson.name || 'درس', description: book.title || '', _resultType: 'book', _resultLabel: 'د کتاب درس', _book: book, _bookGroup: bookGroup });
+              matches.push({ id: lesson.id, title: lesson.title || lesson.name || 'درس', description: book.title || '', _resultType: 'book', _resultSubtype: 'lesson', _chapter: chapter, _lesson: lesson, _resultLabel: 'د کتاب درس', _book: book, _bookGroup: bookGroup });
             }
           });
         });
@@ -2775,6 +2783,32 @@ export default function App() {
     openItem(item);
   }
 
+  async function deleteSearchResult(item) {
+    const kind = item._resultType === 'lesson' ? 'درس' : item._resultType === 'note' ? 'نوټ' : item._resultType === 'dhikr' ? 'ذکر' : item._resultSubtype === 'chapter' ? 'څپرکی' : item._resultSubtype === 'lesson' ? 'د کتاب درس' : 'کتاب';
+    Alert.alert(`${kind} حذف`, `ایا «${item.title}» حذف کول غواړئ؟`, [
+      { text: 'نه', style: 'cancel' },
+      { text: 'هو، حذف یې کړه', style: 'destructive', onPress: async () => {
+        if (item._resultType === 'lesson') { await saveGlobalItems(globalItems.filter(row => row.id !== item.id)); await saveFavorites(favorites.filter(row => row.id !== item.id)); }
+        else if (item._resultType === 'note') await saveNotes(notes.filter(row => row.id !== item.id));
+        else if (item._resultType === 'dhikr') await saveAdhkar(adhkar.filter(row => row.id !== item.id));
+        else if (item._resultType === 'book') {
+          const group = item._bookGroup;
+          const list = Array.isArray(books[group]) ? books[group] : [];
+          const updated = list.map(book => {
+            const sameBook = item._book?.id ? book.id === item._book.id : book.title === item._book?.title;
+            if (!sameBook) return book;
+            if (item._resultSubtype === 'book') return null;
+            const sameChapter = ch => item._chapter?.id ? ch.id === item._chapter.id : ch.title === item._chapter?.title;
+            if (item._resultSubtype === 'chapter') return { ...book, chapters: (book.chapters || []).filter(ch => !sameChapter(ch)) };
+            const sameLesson = ls => item._lesson?.id ? ls.id === item._lesson.id : ls.title === item._lesson?.title;
+            return { ...book, chapters: (book.chapters || []).map(ch => !sameChapter(ch) ? ch : { ...ch, lessons: (ch.lessons || []).filter(ls => !sameLesson(ls)) }) };
+          }).filter(Boolean);
+          await saveBooks({ ...books, [group]: updated });
+        }
+      }}
+    ]);
+  }
+
   function openItem(item) {
     setSelectedItem(item);
     setScreen('itemDetails');
@@ -2790,7 +2824,132 @@ export default function App() {
 
   function getSectionFolders(section) {
     const canonical = canonicalSection(section);
-    return SECTION_FOLDER_TREE[canonical] || [{ name: 'نور پخواني مواد' }];
+    return folderAdmin.sectionFolders?.[canonical] || SECTION_FOLDER_TREE[canonical] || [{ name: 'نور پخواني مواد' }];
+  }
+
+  async function addCustomHomeCard() {
+    const title = newHomeCardTitle.trim();
+    const section = canonicalSection(newHomeCardSection.trim());
+    if (!title) { Alert.alert('خبرتیا', 'د نوي کارت سرلیک ولیکئ.'); return; }
+    if (!SECTIONS.includes(section)) { Alert.alert('خبرتیا', 'د علمي برخې نوم باید د موجودو ۱۶ برخو له نومونو سره برابر وي.'); return; }
+    const card = { id: `custom-${Date.now()}`, title, subtitle: newHomeCardSubtitle.trim(), section, icon: newHomeCardIcon.trim() || 'folder-outline' };
+    await updateHomeDesign({ customHomeCards: [...(homeDesign.customHomeCards || []), card] });
+    setNewHomeCardTitle(''); setNewHomeCardSubtitle(''); setNewHomeCardSection(''); setNewHomeCardIcon('folder-outline');
+  }
+
+  async function updateCustomHomeCard(id, patch) {
+    const cards = (homeDesign.customHomeCards || []).map(card => card.id === id ? { ...card, ...patch } : card);
+    await updateHomeDesign({ customHomeCards: cards });
+  }
+
+  async function deleteCustomHomeCard(id) {
+    Alert.alert('د کورپاڼې کارت حذف', 'دا کارت له کورپاڼې لرې شي؟ د هغه علمي برخې مواد به نه حذف کېږي.', [
+      { text: 'نه', style: 'cancel' },
+      { text: 'هو', style: 'destructive', onPress: () => updateHomeDesign({ customHomeCards: (homeDesign.customHomeCards || []).filter(card => card.id !== id) }) }
+    ]);
+  }
+
+  async function saveSectionFolderRows(section, rows) {
+    const next = { ...folderAdmin, sectionFolders: { ...(folderAdmin.sectionFolders || {}), [section]: rows } };
+    await saveFolderAdmin(next);
+  }
+
+  async function addSectionFolder() {
+    const name = newSectionFolderName.trim();
+    if (!name) { Alert.alert('خبرتیا', 'د نوي فولډر نوم ولیکئ.'); return; }
+    const rows = getSectionFolders(selectedSection);
+    if (rows.some(row => row.name === name)) { Alert.alert('خبرتیا', 'دا فولډر له مخکې شته.'); return; }
+    await saveSectionFolderRows(selectedSection, [...rows, { name }]);
+    setNewSectionFolderName('');
+  }
+
+  async function addSubFolder() {
+    const name = newSubFolderName.trim();
+    if (!name) { Alert.alert('خبرتیا', 'د فرعي فولډر نوم ولیکئ.'); return; }
+    const rows = getSectionFolders(selectedSection).map(row => ({ ...row, children: Array.isArray(row.children) ? [...row.children] : undefined }));
+    const parent = rows.find(row => row.name === selectedFolderParent);
+    if (!parent) return;
+    const children = parent.children || [];
+    if (children.includes(name)) { Alert.alert('خبرتیا', 'دا فرعي فولډر له مخکې شته.'); return; }
+    parent.children = [...children, name];
+    await saveSectionFolderRows(selectedSection, rows);
+    setNewSubFolderName('');
+  }
+
+  async function renameManagedFolder(level, oldName) {
+    if (level === 'root' && oldName === 'نور پخواني مواد') { Alert.alert('خبرتیا', 'دا د زړو موادو د ساتنې ځانګړی فولډر دی؛ نوم یې نه بدلېږي.'); return; }
+    const name = editingFolderName.trim();
+    if (!name) { Alert.alert('خبرتیا', 'نوی نوم ولیکئ.'); return; }
+    if (name === oldName) { setEditingFolderKey(''); return; }
+    if (level === 'allah') {
+      const current = folderAdmin.allahNames || ALLAH_NAMES;
+      if (current.includes(name)) { Alert.alert('خبرتیا', 'دا نوم له مخکې شته.'); return; }
+      await saveFolderAdmin({ ...folderAdmin, allahNames: current.map(x => x === oldName ? name : x) });
+      const updatedItems = globalItems.map(item => canonicalSection(item.section) === selectedSection && item.folder === oldName ? { ...item, folder: name } : item);
+      if (updatedItems.some((item, i) => item !== globalItems[i])) await saveGlobalItems(updatedItems);
+    } else {
+      const rows = getSectionFolders(selectedSection).map(row => ({ ...row, children: Array.isArray(row.children) ? [...row.children] : undefined }));
+      if (level === 'root') {
+        if (rows.some(row => row.name === name)) { Alert.alert('خبرتیا', 'دا فولډر له مخکې شته.'); return; }
+        const row = rows.find(x => x.name === oldName);
+        if (!row) return;
+        row.name = name;
+      } else {
+        const parent = rows.find(x => x.name === selectedFolderParent);
+        if (!parent) return;
+        if ((parent.children || []).includes(name)) { Alert.alert('خبرتیا', 'دا فرعي فولډر له مخکې شته.'); return; }
+        parent.children = (parent.children || []).map(x => x === oldName ? name : x);
+      }
+      await saveSectionFolderRows(selectedSection, rows);
+      const updatedItems = globalItems.map(item => {
+        if (canonicalSection(item.section) !== selectedSection) return item;
+        if (level === 'root' && item.folder === oldName) return { ...item, folder: name };
+        if (level === 'child' && item.folder === oldName) return { ...item, folder: name };
+        return item;
+      });
+      if (updatedItems.some((item, i) => item !== globalItems[i])) await saveGlobalItems(updatedItems);
+      if (level === 'root' && selectedFolderParent === oldName) setSelectedFolderParent(name);
+      if (level === 'child' && selectedFolder === oldName) setSelectedFolder(name);
+    }
+    setEditingFolderKey('');
+    setEditingFolderName('');
+  }
+
+  async function deleteManagedFolder(level, name) {
+    if (level === 'root' && name === 'نور پخواني مواد') { Alert.alert('خبرتیا', 'دا د زړو موادو د ساتنې ځانګړی فولډر دی؛ د معلوماتو د خوندي پاتې کېدو لپاره نه حذف کېږي.'); return; }
+    const title = level === 'allah' ? 'د نوم حذف' : 'د فولډر حذف';
+    Alert.alert(title, 'ایا دا نوم/فولډر لرې کول غواړئ؟ اړوند درسونه به نه حذف کېږي؛ د فولډر مواد به «نور پخواني مواد» ته ولېږدول شي.', [
+      { text: 'نه', style: 'cancel' },
+      { text: 'هو، حذف یې کړه', style: 'destructive', onPress: async () => {
+        if (level === 'allah') {
+          const current = folderAdmin.allahNames || ALLAH_NAMES;
+          await saveFolderAdmin({ ...folderAdmin, allahNames: current.filter(x => x !== name) });
+          const rows = getSectionFolders(selectedSection);
+          if (!rows.some(row => row.name === 'نور پخواني مواد')) await saveSectionFolderRows(selectedSection, [...rows, { name: 'نور پخواني مواد' }]);
+          const moved = globalItems.map(item => canonicalSection(item.section) === selectedSection && item.folder === name ? { ...item, folder: 'نور پخواني مواد' } : item);
+          if (moved.some((item, i) => item !== globalItems[i])) await saveGlobalItems(moved);
+          return;
+        }
+        const rows = getSectionFolders(selectedSection).map(row => ({ ...row, children: Array.isArray(row.children) ? [...row.children] : undefined }));
+        if (level === 'root') {
+          const target = rows.find(row => row.name === name);
+          const names = [name, ...(target?.children || [])];
+          const remaining = rows.filter(row => row.name !== name);
+          if (!remaining.some(row => row.name === 'نور پخواني مواد')) remaining.push({ name: 'نور پخواني مواد' });
+          await saveSectionFolderRows(selectedSection, remaining);
+          const moved = globalItems.map(item => canonicalSection(item.section) === selectedSection && names.includes(item.folder) ? { ...item, folder: 'نور پخواني مواد' } : item);
+          if (moved.some((item, i) => item !== globalItems[i])) await saveGlobalItems(moved);
+        } else {
+          const parent = rows.find(row => row.name === selectedFolderParent);
+          if (!parent) return;
+          parent.children = (parent.children || []).filter(x => x !== name);
+          if (!rows.some(row => row.name === 'نور پخواني مواد')) rows.push({ name: 'نور پخواني مواد' });
+          await saveSectionFolderRows(selectedSection, rows);
+          const moved = globalItems.map(item => canonicalSection(item.section) === selectedSection && item.folder === name ? { ...item, folder: 'نور پخواني مواد' } : item);
+          if (moved.some((item, i) => item !== globalItems[i])) await saveGlobalItems(moved);
+        }
+      }}
+    ]);
   }
 
   function getFolderItemCount(folder) {
@@ -2825,6 +2984,30 @@ export default function App() {
     setNewAdminFolderName('');
   }
 
+  async function renameQuranExtraFolder(oldName) {
+    const name = editingFolderName.trim();
+    if (!name) { Alert.alert('خبرتیا', 'نوی نوم ولیکئ.'); return; }
+    const current = folderAdmin.quranExtra?.[selectedAcademicType] || [];
+    if (current.some(x => x === name && x !== oldName)) { Alert.alert('خبرتیا', 'دا فولډر له مخکې شته.'); return; }
+    const nextList = current.map(x => x === oldName ? name : x);
+    await saveFolderAdmin({ ...folderAdmin, quranExtra: { ...(folderAdmin.quranExtra || {}), [selectedAcademicType]: nextList } });
+    const updated = globalItems.map(item => item.folder === oldName && canonicalSection(item.section) === selectedSection ? { ...item, folder: name } : item);
+    if (updated.some((item, i) => item !== globalItems[i])) await saveGlobalItems(updated);
+    setEditingFolderKey(''); setEditingFolderName('');
+  }
+
+  async function deleteQuranExtraFolder(name) {
+    Alert.alert('فولډر حذف', 'دا فولډر لرې شي؟ اړوند مواد به نه حذف کېږي.', [
+      { text: 'نه', style: 'cancel' },
+      { text: 'هو', style: 'destructive', onPress: async () => {
+        const current = folderAdmin.quranExtra?.[selectedAcademicType] || [];
+        await saveFolderAdmin({ ...folderAdmin, quranExtra: { ...(folderAdmin.quranExtra || {}), [selectedAcademicType]: current.filter(x => x !== name) } });
+        const updated = globalItems.map(item => item.folder === name && canonicalSection(item.section) === selectedSection ? { ...item, folder: 'نور پخواني مواد' } : item);
+        if (updated.some((item, i) => item !== globalItems[i])) await saveGlobalItems(updated);
+      }}
+    ]);
+  }
+
   async function addAllahNameFolder() {
     const name = newAllahName.trim();
     if (!name) { Alert.alert('خبرتیا', 'د الله تعالی د نوم نوم ولیکئ.'); return; }
@@ -2837,9 +3020,10 @@ export default function App() {
   async function moveAdminFolder(listKey, index, direction) {
     const isAllah = listKey === 'allahNames';
     const [sectionKey, parentKey] = isAllah ? ['',''] : listKey.split('::');
+    const activeRows = getSectionFolders(sectionKey || listKey);
     const defaultRows = parentKey
-      ? ((SECTION_FOLDER_TREE[sectionKey] || []).find(row => row.name === parentKey)?.children || [])
-      : (SECTION_FOLDER_TREE[listKey] || []).map(row => row.name);
+      ? (activeRows.find(row => row.name === parentKey)?.children || [])
+      : activeRows.map(row => row.name);
     const source = isAllah
       ? (folderAdmin.allahNames || ALLAH_NAMES)
       : (folderAdmin.sectionOrder?.[listKey] || defaultRows);
@@ -3206,9 +3390,9 @@ export default function App() {
 
                 <Text style={styles.headerBismillah}>
                   {t("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ")}</Text>
-                <Text style={styles.logoTitle}>{t("میراث اسلام")}</Text>
+                <Text style={styles.logoTitle}>{homeDesign.appTitle || t("میراث اسلام")}</Text>
                 <Text style={styles.headerSubtitle}>
-                  {t("د قرآن او سنت د علمونو مرکز")}</Text>
+                  {homeDesign.appSubtitle || t("د قرآن او سنت د علمونو مرکز")}</Text>
                 <View style={styles.headerOrnamentLine}>
                   <Text style={styles.headerOrnament}>✦ ۞ ✦</Text>
                 </View>
@@ -3230,7 +3414,7 @@ export default function App() {
                     onPress={() => setScreen('prayer')}
                     activeOpacity={0.8}
                   >
-                    <Text style={styles.prayerHeadingText}>{t("اوقات الصلاة")}</Text>
+                    <Text style={styles.prayerHeadingText}>{homeDesign.prayerTitle || t("اوقات الصلاة")}</Text>
                     <Ionicons name="time-outline" size={18} color={COLORS.goldLight} />
                   </TouchableOpacity>
                 </View>
@@ -3245,7 +3429,7 @@ export default function App() {
                       activeOpacity={0.75}
                     >
                       <Text style={styles.homePrayerIcon}>{prayer.icon}</Text>
-                      <Text style={styles.homePrayerName}>{t(prayer.title)}</Text>
+                      <Text style={styles.homePrayerName}>{homeDesign.prayerLabels?.[prayer.key] || t(prayer.title)}</Text>
                       <Text style={styles.homePrayerTime}>
                         {prayerTimes ? formatTime(prayerTimes[prayer.key]) : '--:--'}
                       </Text>
@@ -3274,15 +3458,26 @@ export default function App() {
 
               {/* اته عمومي علمي فولډرونه؛ پخوانۍ ۱۶ برخې دننه مدغم دي */}
               <View style={styles.homeCategoriesGrid}>
-                {HOME_SECTION_GROUPS.map(group => (
-                  <TouchableOpacity
-                    key={group.key}
-                    style={homeFolderCardStyle(`group_${group.key}`, styles.homeCategoryCard)}
-                    onPress={() => { setSelectedHomeGroup(group); setScreen('homeSectionGroup'); }}
-                    activeOpacity={0.82}
-                  >
-                    <Ionicons name={group.icon} color={getHomeFolderDesign(`group_${group.key}`).folderIconColor} size={getHomeFolderDesign(`group_${group.key}`).iconSize} />
-                    <Text style={homeFolderTitleStyle(`group_${group.key}`, styles.homeCategoryTitle)}>{group.title}</Text>
+                {HOME_SECTION_GROUPS.map(group => {
+                  const custom = homeDesign.homeGroups?.[group.key] || {};
+                  const displayGroup = { ...group, ...custom };
+                  return (
+                    <TouchableOpacity
+                      key={group.key}
+                      style={homeFolderCardStyle(`group_${group.key}`, styles.homeCategoryCard)}
+                      onPress={() => { setSelectedHomeGroup(displayGroup); setScreen('homeSectionGroup'); }}
+                      activeOpacity={0.82}
+                    >
+                      <Ionicons name={displayGroup.icon || group.icon} color={getHomeFolderDesign(`group_${group.key}`).folderIconColor} size={getHomeFolderDesign(`group_${group.key}`).iconSize} />
+                      <Text style={homeFolderTitleStyle(`group_${group.key}`, styles.homeCategoryTitle)}>{displayGroup.title || group.title}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+                {(homeDesign.customHomeCards || []).map(card => (
+                  <TouchableOpacity key={card.id} style={homeFolderCardStyle(card.id, styles.homeCategoryCard)} onPress={() => openSection(card.section)} activeOpacity={0.82}>
+                    <Ionicons name={card.icon || 'folder-outline'} color={getHomeFolderDesign(card.id).folderIconColor} size={getHomeFolderDesign(card.id).iconSize} />
+                    <Text style={homeFolderTitleStyle(card.id, styles.homeCategoryTitle)}>{card.title}</Text>
+                    {card.subtitle ? <Text style={[styles.smallMuted, { textAlign: 'center' }]}>{card.subtitle}</Text> : null}
                   </TouchableOpacity>
                 ))}
               </View>
@@ -3307,32 +3502,32 @@ export default function App() {
                   onPress={() => setScreen('favorites')}
                   activeOpacity={0.82}
                 >
-                  <Ionicons name="heart-outline" color={getHomeFolderDesign('shortcut_0').folderIconColor} size={getHomeFolderDesign('shortcut_0').iconSize} />
-                  <Text style={homeFolderTitleStyle('shortcut_0', styles.homeShortcutTitle)}>{t("خوښ شوي فایلونه")}</Text>
+                  <Ionicons name={homeDesign.homeIcons?.shortcut_0 || "heart-outline"} color={getHomeFolderDesign('shortcut_0').folderIconColor} size={getHomeFolderDesign('shortcut_0').iconSize} />
+                  <Text style={homeFolderTitleStyle('shortcut_0', styles.homeShortcutTitle)}>{homeDesign.homeLabels?.shortcut_0 || t("خوښ شوي فایلونه")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={homeFolderCardStyle('shortcut_1', styles.homeShortcutCard)}
                   onPress={() => openSection('فتاوی او معاصرې مسئلې')}
                   activeOpacity={0.82}
                 >
-                  <Ionicons name="help-circle-outline" color={getHomeFolderDesign('shortcut_1').folderIconColor} size={getHomeFolderDesign('shortcut_1').iconSize} />
-                  <Text style={homeFolderTitleStyle('shortcut_1', styles.homeShortcutTitle)}>{t("سوالات او جوابات")}</Text>
+                  <Ionicons name={homeDesign.homeIcons?.shortcut_1 || "help-circle-outline"} color={getHomeFolderDesign('shortcut_1').folderIconColor} size={getHomeFolderDesign('shortcut_1').iconSize} />
+                  <Text style={homeFolderTitleStyle('shortcut_1', styles.homeShortcutTitle)}>{homeDesign.homeLabels?.shortcut_1 || t("سوالات او جوابات")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={homeFolderCardStyle('shortcut_2', styles.homeShortcutCard)}
                   onPress={() => openSection('اسلامي زده کړې او درسي نصاب')}
                   activeOpacity={0.82}
                 >
-                  <Ionicons name="library-outline" color={getHomeFolderDesign('shortcut_2').folderIconColor} size={getHomeFolderDesign('shortcut_2').iconSize} />
-                  <Text style={homeFolderTitleStyle('shortcut_2', styles.homeShortcutTitle)}>{t("الکتب")}</Text>
+                  <Ionicons name={homeDesign.homeIcons?.shortcut_2 || "library-outline"} color={getHomeFolderDesign('shortcut_2').folderIconColor} size={getHomeFolderDesign('shortcut_2').iconSize} />
+                  <Text style={homeFolderTitleStyle('shortcut_2', styles.homeShortcutTitle)}>{homeDesign.homeLabels?.shortcut_2 || t("الکتب")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={homeFolderCardStyle('shortcut_3', styles.homeShortcutCard)}
                   onPress={() => setScreen('learningPath')}
                   activeOpacity={0.82}
                 >
-                  <Ionicons name="school-outline" color={getHomeFolderDesign('shortcut_3').folderIconColor} size={getHomeFolderDesign('shortcut_3').iconSize} />
-                  <Text style={homeFolderTitleStyle('shortcut_3', styles.homeShortcutTitle)}>{t("د زده کړې مسیر")}</Text>
+                  <Ionicons name={homeDesign.homeIcons?.shortcut_3 || "school-outline"} color={getHomeFolderDesign('shortcut_3').folderIconColor} size={getHomeFolderDesign('shortcut_3').iconSize} />
+                  <Text style={homeFolderTitleStyle('shortcut_3', styles.homeShortcutTitle)}>{homeDesign.homeLabels?.shortcut_3 || t("د زده کړې مسیر")}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -3343,10 +3538,10 @@ export default function App() {
                   onPress={() => setScreen('adhkarHome')}
                   activeOpacity={0.82}
                 >
-                  <Ionicons name="moon-outline" color={getHomeFolderDesign('wide_0').folderIconColor} size={getHomeFolderDesign('wide_0').iconSize} />
+                  <Ionicons name={homeDesign.homeIcons?.wide_0 || "moon-outline"} color={getHomeFolderDesign('wide_0').folderIconColor} size={getHomeFolderDesign('wide_0').iconSize} />
                   <View style={styles.homeWideTextBox}>
-                    <Text style={homeFolderTitleStyle('wide_0', styles.homeWideTitle)}>{t("د سهار او ماښام اذکار")}</Text>
-                    <Text style={homeFolderTitleStyle('wide_0', styles.homeWideSubtitle)}>{t("ورځني اذکار")}</Text>
+                    <Text style={homeFolderTitleStyle('wide_0', styles.homeWideTitle)}>{homeDesign.homeLabels?.wide_0 || t("د سهار او ماښام اذکار")}</Text>
+                    <Text style={homeFolderTitleStyle('wide_0', styles.homeWideSubtitle)}>{homeDesign.homeSubtitles?.wide_0 || t("ورځني اذکار")}</Text>
                   </View>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -3354,10 +3549,10 @@ export default function App() {
                   onPress={() => setScreen('notes')}
                   activeOpacity={0.82}
                 >
-                  <Ionicons name="document-text-outline" color={getHomeFolderDesign('wide_1').folderIconColor} size={getHomeFolderDesign('wide_1').iconSize} />
+                  <Ionicons name={homeDesign.homeIcons?.wide_1 || "document-text-outline"} color={getHomeFolderDesign('wide_1').folderIconColor} size={getHomeFolderDesign('wide_1').iconSize} />
                   <View style={styles.homeWideTextBox}>
-                    <Text style={homeFolderTitleStyle('wide_1', styles.homeWideTitle)}>{t("زما نوټونه")}</Text>
-                    <Text style={homeFolderTitleStyle('wide_1', styles.homeWideSubtitle)}>{t("شخصي یادښتونه")}</Text>
+                    <Text style={homeFolderTitleStyle('wide_1', styles.homeWideTitle)}>{homeDesign.homeLabels?.wide_1 || t("زما نوټونه")}</Text>
+                    <Text style={homeFolderTitleStyle('wide_1', styles.homeWideSubtitle)}>{homeDesign.homeSubtitles?.wide_1 || t("شخصي یادښتونه")}</Text>
                   </View>
                 </TouchableOpacity>
               </View>
@@ -3369,24 +3564,24 @@ export default function App() {
             {/* ثابت لاندې مینو؛ یوازې په کورپاڼه کې ښکاري */}
             <View style={[styles.homeBottomNav, { marginBottom: homeDesign.navOffset, backgroundColor: homeDesign.navBackground }]}>
               <TouchableOpacity style={styles.homeNavItem} activeOpacity={0.75} onPress={() => setScreen('scholars')}>
-                <Ionicons name="library-outline" size={20} color={COLORS.goldLight} />
-                <Text style={styles.homeNavLabel}>{t("کتابتون")}</Text>
+                <Ionicons name={homeDesign.bottomNavIcons?.library || "library-outline"} size={20} color={COLORS.goldLight} />
+                <Text style={styles.homeNavLabel}>{homeDesign.bottomNavLabels?.library || t("کتابتون")}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.homeNavItem} activeOpacity={0.75} onPress={() => setScreen('adhkarHome')}>
-                <Ionicons name="moon-outline" size={20} color={COLORS.goldLight} />
-                <Text style={styles.homeNavLabel}>{t("اذکار")}</Text>
+                <Ionicons name={homeDesign.bottomNavIcons?.adhkar || "moon-outline"} size={20} color={COLORS.goldLight} />
+                <Text style={styles.homeNavLabel}>{homeDesign.bottomNavLabels?.adhkar || t("اذکار")}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.homeNavItem} activeOpacity={0.75} onPress={() => setScreen('notes')}>
-                <Ionicons name="document-text-outline" size={20} color={COLORS.goldLight} />
-                <Text style={styles.homeNavLabel}>{t("نوټونه")}</Text>
+                <Ionicons name={homeDesign.bottomNavIcons?.notes || "document-text-outline"} size={20} color={COLORS.goldLight} />
+                <Text style={styles.homeNavLabel}>{homeDesign.bottomNavLabels?.notes || t("نوټونه")}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.homeNavItem} activeOpacity={0.75} onPress={() => setScreen('settings')}>
-                <Ionicons name="settings-outline" size={20} color={COLORS.goldLight} />
-                <Text style={styles.homeNavLabel}>{t("تنظیمات")}</Text>
+                <Ionicons name={homeDesign.bottomNavIcons?.settings || "settings-outline"} size={20} color={COLORS.goldLight} />
+                <Text style={styles.homeNavLabel}>{homeDesign.bottomNavLabels?.settings || t("تنظیمات")}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.homeNavItem, styles.homeNavItemActive]} activeOpacity={0.75} onPress={() => setScreen('home')}>
-                <Ionicons name="home" size={22} color={COLORS.gold} />
-                <Text style={styles.homeNavLabelActive}>{t("کور")}</Text>
+                <Ionicons name={homeDesign.bottomNavIcons?.home || "home"} size={22} color={COLORS.gold} />
+                <Text style={styles.homeNavLabelActive}>{homeDesign.bottomNavLabels?.home || t("کور")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -3681,30 +3876,46 @@ export default function App() {
               onBack={goBack}
             />
 
+            <View style={styles.formCard}>
+              <Text style={[styles.cardHeading, { color: settings.headingColor }]}>د فولډرونو مدیریت</Text>
+              <Field textColor={settings.textColor} label="نوی فولډر جوړ کړئ" value={newSectionFolderName} onChangeText={setNewSectionFolderName} placeholder="د فولډر نوم ولیکئ" />
+              <GoldButton title="＋ فولډر اضافه کړئ" onPress={addSectionFolder} />
+              <Text style={styles.smallMuted}>د هر فولډر نوم بدلول، حذفول او پورته/ښکته انتقالولای شئ.</Text>
+            </View>
+
             {getOrderedSectionFolders(selectedSection).map((folder, index) => {
               const count = getFolderItemCount(folder);
               const hasChildren = Array.isArray(folder.children) && folder.children.length > 0;
               return (
-                <TouchableOpacity
-                  key={folder.name}
-                  style={styles.listCard}
-                  onPress={() => {
-                    if (hasChildren) {
-                      setSelectedFolderParent(folder.name);
-                      setScreen('sectionSubFolders');
-                    } else {
-                      openFolder(folder.name);
-                    }
-                  }}
-                >
-                  <Ionicons name={hasChildren ? 'folder-open-outline' : ['book-outline','school-outline','library-outline','albums-outline','document-text-outline','bookmark-outline'][index % 6]} size={22} color={COLORS.gold} />
-                  <View style={styles.flexText}>
-                    <Text style={[styles.listCardTitle, { color: settings.textColor }]}>{folder.name}</Text>
-                    <Text style={styles.smallMuted}>{hasChildren ? `${folder.children.length} فرعي فولډرونه · ${count} مواد` : `${count} مواد`}</Text>
+                <React.Fragment key={folder.name}>
+                <View style={styles.listCard}>
+                  <TouchableOpacity style={styles.flexText} onPress={() => {
+                    if (hasChildren) { setSelectedFolderParent(folder.name); setScreen('sectionSubFolders'); }
+                    else openFolder(folder.name);
+                  }}>
+                    <Ionicons name={hasChildren ? 'folder-open-outline' : ['book-outline','school-outline','library-outline','albums-outline','document-text-outline','bookmark-outline'][index % 6]} size={22} color={COLORS.gold} />
+                    <View style={styles.flexText}>
+                      <Text style={[styles.listCardTitle, { color: settings.textColor }]}>{folder.name}</Text>
+                      <Text style={styles.smallMuted}>{hasChildren ? `${folder.children.length} فرعي فولډرونه · ${count} مواد` : `${count} مواد`}</Text>
+                    </View>
+                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                    <TouchableOpacity onPress={() => moveAdminFolder(selectedSection, index, -1)}><Text style={styles.deleteIcon}>↑</Text></TouchableOpacity>
+                    <TouchableOpacity onPress={() => moveAdminFolder(selectedSection, index, 1)}><Text style={styles.deleteIcon}>↓</Text></TouchableOpacity>
+                    <TouchableOpacity onPress={() => { setSelectedFolderParent(folder.name); setScreen('sectionSubFolders'); }}><Ionicons name="folder-open-outline" size={19} color={COLORS.gold} /></TouchableOpacity>
+                    <TouchableOpacity onPress={() => { setEditingFolderKey(`root:${folder.name}`); setEditingFolderName(folder.name); }}><Ionicons name="create-outline" size={19} color={COLORS.gold} /></TouchableOpacity>
+                    <TouchableOpacity onPress={() => deleteManagedFolder('root', folder.name)}><Ionicons name="trash-outline" size={19} color={COLORS.red} /></TouchableOpacity>
                   </View>
-                  <View style={{ flexDirection: 'row', gap: 5 }}><TouchableOpacity onPress={() => moveAdminFolder(selectedSection, index, -1)}><Text style={styles.deleteIcon}>↑</Text></TouchableOpacity><TouchableOpacity onPress={() => moveAdminFolder(selectedSection, index, 1)}><Text style={styles.deleteIcon}>↓</Text></TouchableOpacity></View>
                   <Text style={styles.lessonArrow}>‹</Text>
-                </TouchableOpacity>
+                </View>
+                {editingFolderKey === `root:${folder.name}` && (
+                  <View style={styles.formCard}>
+                    <Field textColor={settings.textColor} label="نوی نوم" value={editingFolderName} onChangeText={setEditingFolderName} placeholder="نوی نوم" />
+                    <GoldButton title="نوم خوندي کړئ" onPress={() => renameManagedFolder('root', folder.name)} />
+                    <GoldButton title="لغوه" secondary onPress={() => setEditingFolderKey('')} />
+                  </View>
+                )}
+                </React.Fragment>
               );
             })}
           </ScrollView>
@@ -3714,6 +3925,13 @@ export default function App() {
         {screen === 'sectionSubFolders' && (
           <ScrollView contentContainerStyle={styles.pageContent} keyboardShouldPersistTaps="always" keyboardDismissMode="none">
             <PageHeader title={selectedFolderParent} subtitle={selectedSection} onBack={goBack} />
+            {selectedFolderParent !== 'اسماء او صفات' && (
+              <View style={styles.formCard}>
+                <Text style={[styles.cardHeading, { color: settings.headingColor }]}>فرعي فولډرونه اداره کړئ</Text>
+                <Field textColor={settings.textColor} label="نوی فرعي فولډر" value={newSubFolderName} onChangeText={setNewSubFolderName} placeholder="نوم ولیکئ" />
+                <GoldButton title="＋ فرعي فولډر اضافه کړئ" onPress={addSubFolder} />
+              </View>
+            )}
             {selectedFolderParent === 'اسماء او صفات' && (
               <View style={styles.formCard}>
                 <Text style={[styles.cardHeading, { color: settings.headingColor }]}>د الله تعالی نوی نوم اضافه کړئ</Text>
@@ -3726,17 +3944,28 @@ export default function App() {
               ? (folderAdmin.allahNames || ALLAH_NAMES)
               : getOrderedSubFolders(selectedSection, selectedFolderParent)
             ).map((child, index) => (
-              <View key={child} style={[styles.listCard, { backgroundColor: homeDesign.subFolderBackground, borderColor: homeDesign.folderBorderColor }]}>
+              <React.Fragment key={child}>
+              <View style={[styles.listCard, { backgroundColor: homeDesign.subFolderBackground, borderColor: homeDesign.folderBorderColor }]}>
                 <TouchableOpacity style={styles.flexText} onPress={() => openFolder(child, selectedFolderParent)}>
-                  <Text style={[styles.listCardTitle, { color: homeDesign.subFolderTextColor || COLORS.goldLight, fontSize: homeDesign.subFolderTitleSize || 16 }]}>{child}</Text>
+                  <Text style={[styles.listCardTitle, { color: homeDesign.subFolderTextColor || COLORS.goldLight, fontSize: homeDesign.subFolderTitleSize || 16 }]}>{selectedFolderParent === 'اسماء او صفات' ? `${child} جل جلاله` : child}</Text>
                   <Text style={styles.smallMuted}>{getFolderItemCount({ name: child })} مواد</Text>
                 </TouchableOpacity>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                   <TouchableOpacity onPress={() => moveAdminFolder(selectedFolderParent === 'اسماء او صفات' ? 'allahNames' : `${selectedSection}::${selectedFolderParent}`, index, -1)}><Text style={styles.deleteIcon}>↑</Text></TouchableOpacity>
                   <TouchableOpacity onPress={() => moveAdminFolder(selectedFolderParent === 'اسماء او صفات' ? 'allahNames' : `${selectedSection}::${selectedFolderParent}`, index, 1)}><Text style={styles.deleteIcon}>↓</Text></TouchableOpacity>
+                  <TouchableOpacity onPress={() => { setEditingFolderKey(`${selectedFolderParent === 'اسماء او صفات' ? 'allah' : 'child'}:${child}`); setEditingFolderName(child); }}><Ionicons name="create-outline" size={19} color={COLORS.gold} /></TouchableOpacity>
+                  <TouchableOpacity onPress={() => deleteManagedFolder(selectedFolderParent === 'اسماء او صفات' ? 'allah' : 'child', child)}><Ionicons name="trash-outline" size={19} color={COLORS.red} /></TouchableOpacity>
                   <TouchableOpacity onPress={() => openFolder(child, selectedFolderParent)}><Text style={styles.lessonArrow}>‹</Text></TouchableOpacity>
                 </View>
               </View>
+              {editingFolderKey === `${selectedFolderParent === 'اسماء او صفات' ? 'allah' : 'child'}:${child}` && (
+                <View style={styles.formCard}>
+                  <Field textColor={settings.textColor} label="نوی نوم" value={editingFolderName} onChangeText={setEditingFolderName} placeholder="نوی نوم" />
+                  <GoldButton title="نوم خوندي کړئ" onPress={() => renameManagedFolder(selectedFolderParent === 'اسماء او صفات' ? 'allah' : 'child', child)} />
+                  <GoldButton title="لغوه" secondary onPress={() => setEditingFolderKey('')} />
+                </View>
+              )}
+              </React.Fragment>
             ))}
           </ScrollView>
         )}
@@ -3754,11 +3983,18 @@ export default function App() {
               <GoldButton title="＋ فولډر اضافه کړئ" onPress={addQuranExtraFolder} />
             </View>
             {(folderAdmin.quranExtra?.[selectedAcademicType] || []).map(name => (
-              <TouchableOpacity key={name} style={[styles.listCard, { backgroundColor: homeDesign.subFolderBackground }]} onPress={() => { setSelectedFolder(name); setSelectedFolderParent(''); setScreen('sectionFolder'); }}>
-                <Ionicons name="folder-open-outline" size={22} color={COLORS.gold} />
-                <Text style={[styles.listCardTitle, { color: homeDesign.subFolderTextColor || COLORS.goldLight }]}>{name}</Text>
-                <Text style={styles.lessonArrow}>‹</Text>
-              </TouchableOpacity>
+              <View key={name}>
+                <View style={[styles.listCard, { backgroundColor: homeDesign.subFolderBackground }]}>
+                  <TouchableOpacity style={styles.flexText} onPress={() => { setSelectedFolder(name); setSelectedFolderParent(''); setScreen('sectionFolder'); }}>
+                    <Ionicons name="folder-open-outline" size={22} color={COLORS.gold} />
+                    <Text style={[styles.listCardTitle, { color: homeDesign.subFolderTextColor || COLORS.goldLight }]}>{name}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => { setEditingFolderKey(`quran:${name}`); setEditingFolderName(name); }}><Ionicons name="create-outline" size={19} color={COLORS.gold} /></TouchableOpacity>
+                  <TouchableOpacity onPress={() => deleteQuranExtraFolder(name)}><Ionicons name="trash-outline" size={19} color={COLORS.red} /></TouchableOpacity>
+                  <Text style={styles.lessonArrow}>‹</Text>
+                </View>
+                {editingFolderKey === `quran:${name}` && <View style={styles.formCard}><Field textColor={settings.textColor} label="نوی نوم" value={editingFolderName} onChangeText={setEditingFolderName} placeholder="نوی نوم" /><GoldButton title="نوم خوندي کړئ" onPress={() => renameQuranExtraFolder(name)} /><GoldButton title="لغوه" secondary onPress={() => setEditingFolderKey('')} /></View>}
+              </View>
             ))}
             {QURAN_SURAHS.map(surah => {
               const count = getQuranAcademicItems(surah.number, null).length;
@@ -4935,6 +5171,41 @@ export default function App() {
               <Text style={[styles.cardHeading, { color: settings.headingColor }]}>دروس المشایخ – د نومونو تنظیم</Text>
               <Field textColor={settings.textColor} label="د فولډر نوم" value={homeDesign.scholarsTitle || 'دروس المشایخ'} onChangeText={value => updateHomeDesign({ scholarsTitle: value })} placeholder="د فولډر نوم" />
               <Field textColor={settings.textColor} label="لاندې فرعي عنوان" value={homeDesign.scholarsSubtitle || 'د علماوو او مشایخو علمي درسونه'} onChangeText={value => updateHomeDesign({ scholarsSubtitle: value })} placeholder="فرعي عنوان" />
+              <Field textColor={settings.textColor} label="د اپلېکېشن اصلي سرلیک" value={homeDesign.appTitle || 'میراث اسلام'} onChangeText={value => updateHomeDesign({ appTitle: value })} placeholder="میراث اسلام" />
+              <Field textColor={settings.textColor} label="د اصلي سرلیک لاندې لیکنه" value={homeDesign.appSubtitle || 'د قرآن او سنت د علمونو مرکز'} onChangeText={value => updateHomeDesign({ appSubtitle: value })} placeholder="د قرآن او سنت د علمونو مرکز" />
+              <Text style={[styles.cardHeading, { color: settings.headingColor, marginTop: 12 }]}>د لمانځه د کارت نومونه</Text>
+              <Field textColor={settings.textColor} label="د لمانځه د کارت سرلیک" value={homeDesign.prayerTitle || 'اوقات الصلاة'} onChangeText={value => updateHomeDesign({ prayerTitle: value })} placeholder="اوقات الصلاة" />
+              {PRAYERS.map(prayer => <Field key={prayer.key} textColor={settings.textColor} label={`${prayer.title} – نوی نوم`} value={homeDesign.prayerLabels?.[prayer.key] || prayer.title} onChangeText={value => updateHomeDesign({ prayerLabels: { ...(homeDesign.prayerLabels || {}), [prayer.key]: value } })} placeholder={prayer.title} />)}
+              <Field textColor={settings.textColor} label="د اشراق نوم" value={homeDesign.ishraqLabel || 'اشراق (تقريبي)'} onChangeText={value => updateHomeDesign({ ishraqLabel: value })} placeholder="اشراق (تقريبي)" />
+              <Text style={[styles.cardHeading, { color: settings.headingColor, marginTop: 12 }]}>د لاندې مینو نومونه او نښې</Text>
+              {[{key:'library',label:'کتابتون',icon:'library-outline'},{key:'adhkar',label:'اذکار',icon:'moon-outline'},{key:'notes',label:'نوټونه',icon:'document-text-outline'},{key:'settings',label:'تنظیمات',icon:'settings-outline'},{key:'home',label:'کور',icon:'home'}].map(item => <View key={item.key}><Field textColor={settings.textColor} label={`${item.label} – نوی نوم`} value={homeDesign.bottomNavLabels?.[item.key] || item.label} onChangeText={value => updateHomeDesign({ bottomNavLabels: { ...(homeDesign.bottomNavLabels || {}), [item.key]: value } })} placeholder={item.label} /><Field textColor={settings.textColor} label="د نښې نوم (Ionicons)" value={homeDesign.bottomNavIcons?.[item.key] || item.icon} onChangeText={value => updateHomeDesign({ bottomNavIcons: { ...(homeDesign.bottomNavIcons || {}), [item.key]: value } })} placeholder={item.icon} /></View>)}
+              <Text style={[styles.cardHeading, { color: settings.headingColor, marginTop: 12 }]}>د کورپاڼې د علمي برخو نومونه او نښې</Text>
+              {HOME_SECTION_GROUPS.map(group => {
+                const cfg = homeDesign.homeGroups?.[group.key] || {};
+                return <View key={group.key} style={{ marginBottom: 10 }}>
+                  <Field textColor={settings.textColor} label={`${group.title} – نوی نوم`} value={cfg.title || group.title} onChangeText={value => updateHomeDesign({ homeGroups: { ...(homeDesign.homeGroups || {}), [group.key]: { ...cfg, title: value } } })} placeholder={group.title} />
+                  <Field textColor={settings.textColor} label="د نښې نوم (Ionicons)" value={cfg.icon || group.icon} onChangeText={value => updateHomeDesign({ homeGroups: { ...(homeDesign.homeGroups || {}), [group.key]: { ...cfg, icon: value } } })} placeholder={group.icon} />
+                </View>;
+              })}
+              <Text style={[styles.cardHeading, { color: settings.headingColor, marginTop: 12 }]}>د کورپاڼې د چټکو برخو نومونه او نښې</Text>
+              {HOME_FOLDER_OPTIONS.filter(item => item.key.startsWith('shortcut_') || item.key.startsWith('wide_')).map(item => (
+                <View key={item.key}>
+                  <Field textColor={settings.textColor} label={`${item.label} – نوی نوم`} value={homeDesign.homeLabels?.[item.key] || item.label} onChangeText={value => updateHomeDesign({ homeLabels: { ...(homeDesign.homeLabels || {}), [item.key]: value } })} placeholder={item.label} />
+                  {homeDesign.homeIcons?.[item.key] !== undefined || item.key.startsWith('shortcut_') || item.key.startsWith('wide_') ? <Field textColor={settings.textColor} label="د نښې نوم (Ionicons)" value={homeDesign.homeIcons?.[item.key] || ({ shortcut_0: 'heart-outline', shortcut_1: 'help-circle-outline', shortcut_2: 'library-outline', shortcut_3: 'school-outline', wide_0: 'moon-outline', wide_1: 'document-text-outline' }[item.key])} onChangeText={value => updateHomeDesign({ homeIcons: { ...(homeDesign.homeIcons || {}), [item.key]: value } })} placeholder="book-outline" /> : null}
+                </View>
+              ))}
+              <Text style={[styles.cardHeading, { color: settings.headingColor, marginTop: 14 }]}>د کورپاڼې نوی فولډر / کارت اضافه کړئ</Text>
+              <Field textColor={settings.textColor} label="د کارت سرلیک" value={newHomeCardTitle} onChangeText={setNewHomeCardTitle} placeholder="نوی سرلیک" />
+              <Field textColor={settings.textColor} label="د کارت فرعي لیکنه (اختیاري)" value={newHomeCardSubtitle} onChangeText={setNewHomeCardSubtitle} placeholder="لنډ وضاحت" />
+              <Field textColor={settings.textColor} label="اړونده علمي برخه – دقیق نوم" value={newHomeCardSection} onChangeText={setNewHomeCardSection} placeholder="لکه: فقه او فروع" />
+              <Field textColor={settings.textColor} label="د نښې نوم (Ionicons)" value={newHomeCardIcon} onChangeText={setNewHomeCardIcon} placeholder="folder-outline" />
+              <GoldButton title="＋ کورپاڼې ته نوی کارت اضافه کړئ" onPress={addCustomHomeCard} />
+              {(homeDesign.customHomeCards || []).map(card => <View key={card.id} style={{ marginTop: 8, padding: 8, borderWidth: 1, borderColor: COLORS.border, borderRadius: 10 }}>
+                <Field textColor={settings.textColor} label="د کارت نوم" value={card.title} onChangeText={value => updateCustomHomeCard(card.id, { title: value })} placeholder="سرلیک" />
+                <Field textColor={settings.textColor} label="فرعي لیکنه" value={card.subtitle || ''} onChangeText={value => updateCustomHomeCard(card.id, { subtitle: value })} placeholder="فرعي لیکنه" />
+                <Field textColor={settings.textColor} label="د نښې نوم" value={card.icon || 'folder-outline'} onChangeText={value => updateCustomHomeCard(card.id, { icon: value })} placeholder="folder-outline" />
+                <GoldButton title="دا کارت حذف کړئ" secondary onPress={() => deleteCustomHomeCard(card.id)} />
+              </View>)}
               <Text style={[styles.cardHeading, { color: settings.headingColor, marginTop: 12 }]}>د فرعي فولډرونو جلا ډیزاین</Text>
               <Text style={styles.designLabel}>د فرعي فولډر شالید رنګ</Text>
               <View style={styles.designColorGrid}>{HOME_COLOR_OPTIONS.slice(0, 12).map(color => <TouchableOpacity key={color} onPress={() => updateHomeDesign({ subFolderBackground: color })} style={[styles.designColorButton, { backgroundColor: color, borderColor: homeDesign.subFolderBackground === color ? COLORS.gold : COLORS.border }]} />)}</View>
@@ -5264,24 +5535,19 @@ export default function App() {
               placeholder={t("دلته ولیکئ...")}
             />
 
-            {getSearchResults().map(item => (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.lessonCard}
-                onPress={() => openSearchResult(item)}
-              >
-                <View style={styles.flexText}>
-                  <Text style={styles.lessonTitle}>
-                    {item.title}
-                  </Text>
-
-                  <Text style={styles.smallMuted}>
-                    {item._resultLabel || item.scholar || item.section || 'درس'}
-                  </Text>
-                </View>
-
-                <Text style={styles.lessonArrow}>‹</Text>
-              </TouchableOpacity>
+            {getSearchResults().map((item, index) => (
+              <View key={`${item._resultType}-${item.id || item.title}-${index}`} style={[styles.lessonCard, { flexDirection: 'row', alignItems: 'center' }]}>
+                <TouchableOpacity style={styles.flexText} onPress={() => openSearchResult(item)}>
+                  <Text style={styles.lessonTitle}>{item.title}</Text>
+                  <Text style={styles.smallMuted}>{item._resultLabel || item.scholar || item.section || 'درس'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => deleteSearchResult(item)} style={{ padding: 8 }} accessibilityLabel="حذف">
+                  <Ionicons name="trash-outline" size={20} color={COLORS.red} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => openSearchResult(item)} style={{ padding: 4 }}>
+                  <Text style={styles.lessonArrow}>‹</Text>
+                </TouchableOpacity>
+              </View>
             ))}
 
             {searchText.trim() && getSearchResults().length === 0 && (
